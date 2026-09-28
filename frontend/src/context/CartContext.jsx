@@ -1,35 +1,66 @@
-import { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState(()=>{
-    const saved = localStorage.getItem("shivar_cart");
-    return saved? JSON.parse(saved) : [];
+  const [cart, setCart] = useState(() => {
+    try { const s = localStorage.getItem("shivar_cart"); return s? JSON.parse(s) : []; } catch { return []; }
+  });
+  const [onlineOrders, setOnlineOrders] = useState(() => {
+    try { const s = localStorage.getItem("shivar_online"); return s? JSON.parse(s) : []; } catch { return []; }
   });
 
-  useEffect(()=>{
-    localStorage.setItem("shivar_cart", JSON.stringify(cart));
-  },[cart]);
+  useEffect(() => { localStorage.setItem("shivar_cart", JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { localStorage.setItem("shivar_online", JSON.stringify(onlineOrders)); }, [onlineOrders]);
 
-  const addToCart = (item, qty) => {
-    const q = qty || 1;
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === "shivar_cart") setCart(JSON.parse(e.newValue||"[]"));
+      if (e.key === "shivar_online") setOnlineOrders(JSON.parse(e.newValue||"[]"));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const addToCart = (item, delta) => {
     setCart(prev => {
-      const ex = prev.find(c=>c.id===item.id);
-      return ex? prev.map(c=>c.id===item.id?{...c, qty: c.qty+q}:c) : [...prev, {...item, qty:q}];
+      const ex = prev.find(p => p.id === item.id);
+      if (ex) {
+        const newQty = ex.qty + delta;
+        if (newQty <= 0) return prev.filter(p => p.id!== item.id);
+        return prev.map(p => p.id === item.id? {...p, qty: newQty } : p);
+      } else {
+        if (delta > 0) return [...prev, {...item, qty: delta }];
+        return prev;
+      }
     });
   };
-  const removeFromCart = (id) => setCart(prev => prev.filter(c=>c.id!==id));
-  const updateCartQty = (id, newQty) => {
-    if(newQty<=0) return removeFromCart(id);
-    setCart(prev => prev.map(c=>c.id===id?{...c, qty:newQty}:c));
-  };
+
   const clearCart = () => setCart([]);
-  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const count = cart.reduce((s,i)=>s+i.qty,0);
+
+  const placeOnlineOrder = () => {
+    if (cart.length === 0) return;
+    const newOrder = {
+      id: Date.now(),
+      time: new Date().toLocaleTimeString(),
+      orders: [...cart],
+      total: cart.reduce((s,i)=>s+i.price*i.qty,0),
+      status: "new"
+    };
+    setOnlineOrders(prev => [newOrder,...prev]);
+    setCart([]);
+  };
+
+  const clearOnlineOrder = (id) => {
+    setOnlineOrders(prev => prev.filter(o => o.id!== id));
+  };
 
   return (
-    <CartContext.Provider value={{cart, addToCart, removeFromCart, updateCartQty, clearCart, total, count}}>
+    <CartContext.Provider value={{
+      cart, cartItems: cart,
+      addToCart, clearCart,
+      onlineOrders, placeOnlineOrder, clearOnlineOrder
+    }}>
       {children}
     </CartContext.Provider>
   );

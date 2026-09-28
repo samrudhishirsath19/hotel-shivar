@@ -8,7 +8,7 @@ export default function BookingModal({ isOpen, onClose }) {
 
   const handleBooking = () => {
     if (!form.name ||!form.mobile) {
-      alert("Naav aani Mobile tak na!");
+      alert("Please fill the details!");
       return;
     }
 
