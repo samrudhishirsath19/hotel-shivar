@@ -5,10 +5,12 @@ import com.hotelshivar.backend.entity.Room;
 import com.hotelshivar.backend.service.RoomService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -23,6 +25,13 @@ public class RoomController {
         return Boolean.TRUE.equals(availableOnly)
                 ? roomService.getAvailableRooms()
                 : roomService.getAllRooms();
+    }
+
+    /** Public: ids of rooms that are already booked for these dates (default: tonight). */
+    @GetMapping("/occupied")
+    public List<Long> occupied(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut) {
+        return roomService.getOccupiedRoomIds(checkIn, checkOut);
     }
 
     @GetMapping("/{id}")

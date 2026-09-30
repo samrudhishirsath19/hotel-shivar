@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -54,4 +55,43 @@ public class Booking {
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** Nights x price per night (without GST). Null on bookings saved before GST was added. */
+    private Integer nights;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal roomCharges;
+
+    // ------------------------------------------------------------------ GST (worked out once, stored)
+
+    /** Total GST % applied (CGST + SGST); null on records saved before GST was added. */
+    @Column(precision = 5, scale = 2)
+    private BigDecimal gstRate;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal cgstAmount;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal sgstAmount;
+
+    /** cgstAmount + sgstAmount */
+    @Column(precision = 12, scale = 2)
+    private BigDecimal taxAmount;
+
+    /** Taxable amount + GST = what the guest pays. */
+    @Column(precision = 12, scale = 2)
+    private BigDecimal grandTotal;
+
+    /** What is charged: the amount with GST, or (old records without GST) the plain amount. Sent to the screens as "amountPayable". */
+    public BigDecimal getAmountPayable() {
+        return grandTotal != null ? grandTotal : roomCharges;
+    }
+
+    public void applyTax(com.hotelshivar.backend.service.GstService.Tax t) {
+        this.gstRate = t.rate();
+        this.cgstAmount = t.cgst();
+        this.sgstAmount = t.sgst();
+        this.taxAmount = t.tax();
+        this.grandTotal = t.total();
+    }
 }

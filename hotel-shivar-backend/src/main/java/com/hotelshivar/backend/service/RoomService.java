@@ -2,11 +2,14 @@ package com.hotelshivar.backend.service;
 
 import com.hotelshivar.backend.dto.RoomRequest;
 import com.hotelshivar.backend.entity.Room;
+import com.hotelshivar.backend.exception.BadRequestException;
 import com.hotelshivar.backend.exception.ResourceNotFoundException;
+import com.hotelshivar.backend.repository.BookingRepository;
 import com.hotelshivar.backend.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -14,6 +17,14 @@ import java.util.List;
 public class RoomService {
 
     private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
+
+    /** Ids of rooms already booked (pending or confirmed) for any night between checkIn and checkOut. */
+    public List<Long> getOccupiedRoomIds(LocalDate checkIn, LocalDate checkOut) {
+        LocalDate in = checkIn != null ? checkIn : LocalDate.now();
+        LocalDate out = checkOut != null && checkOut.isAfter(in) ? checkOut : in.plusDays(1);
+        return bookingRepository.findOccupiedRoomIds(in, out);
+    }
 
     public List<Room> getAllRooms() {
         return roomRepository.findAll();
@@ -29,12 +40,19 @@ public class RoomService {
     }
 
     public Room createRoom(RoomRequest request) {
+        String number = request.getRoomNumber().trim();
+        if (roomRepository.findByRoomNumber(number).isPresent()) {
+            throw new BadRequestException("Room number " + number + " already exists. Use a different room number.");
+        }
         Room room = Room.builder()
-                .roomNumber(request.getRoomNumber())
+                .roomNumber(number)
+                .name(request.getName().trim())
                 .type(request.getType())
                 .pricePerNight(request.getPricePerNight())
                 .description(request.getDescription())
+                .size(request.getSize())
                 .capacity(request.getCapacity())
+                .amenities(request.getAmenities())
                 .imageUrl(request.getImageUrl())
                 .available(request.getAvailable() == null || request.getAvailable())
                 .build();
@@ -43,11 +61,20 @@ public class RoomService {
 
     public Room updateRoom(Long id, RoomRequest request) {
         Room room = getRoomById(id);
-        room.setRoomNumber(request.getRoomNumber());
+        String number = request.getRoomNumber().trim();
+        roomRepository.findByRoomNumber(number).ifPresent(other -> {
+            if (!other.getId().equals(id)) {
+                throw new BadRequestException("Room number " + number + " already exists. Use a different room number.");
+            }
+        });
+        room.setRoomNumber(number);
+        room.setName(request.getName().trim());
         room.setType(request.getType());
         room.setPricePerNight(request.getPricePerNight());
         room.setDescription(request.getDescription());
+        room.setSize(request.getSize());
         room.setCapacity(request.getCapacity());
+        room.setAmenities(request.getAmenities());
         room.setImageUrl(request.getImageUrl());
         if (request.getAvailable() != null) {
             room.setAvailable(request.getAvailable());

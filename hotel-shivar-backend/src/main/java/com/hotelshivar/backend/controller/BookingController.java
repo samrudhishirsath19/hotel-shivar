@@ -4,6 +4,7 @@ import com.hotelshivar.backend.dto.BookingRequest;
 import com.hotelshivar.backend.entity.Booking;
 import com.hotelshivar.backend.entity.enums.BookingStatus;
 import com.hotelshivar.backend.service.BookingService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

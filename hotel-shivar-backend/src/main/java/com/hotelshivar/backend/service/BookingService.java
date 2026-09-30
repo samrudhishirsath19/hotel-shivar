@@ -19,6 +19,7 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
+    private final GstService gstService;
 
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
@@ -63,6 +64,7 @@ public class BookingService {
                 .specialRequests(request.getSpecialRequests())
                 .status(BookingStatus.PENDING)
                 .build();
+        applyRoomTax(booking);
 
         return bookingRepository.save(booking);
     }
@@ -70,12 +72,27 @@ public class BookingService {
     public Booking updateStatus(Long id, BookingStatus status) {
         Booking booking = getBookingById(id);
         booking.setStatus(status);
-        return bookingRepository.save(booking);
+        bookingRepository.save(booking);
+        // Read it again: save() hands back a copy whose room is a lazy proxy, and the JSON response
+        // cannot load it after the database session is closed ("could not initialize proxy ... no Session").
+        return getBookingById(id);
     }
 
     public void cancelBooking(Long id) {
         Booking booking = getBookingById(id);
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+    }
+
+    /**
+     * Room charges = nights x price per night, plus room GST. The GST % depends on the price of ONE room
+     * for ONE night (up to the limit / above it), not on the total of the stay. Worked out once and stored.
+     */
+    public void applyRoomTax(Booking b) {
+        int nights = (int) Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(b.getCheckIn(), b.getCheckOut()));
+        java.math.BigDecimal perNight = b.getRoom().getPricePerNight();
+        b.setNights(nights);
+        b.setRoomCharges(perNight.multiply(java.math.BigDecimal.valueOf(nights)));
+        b.applyTax(GstService.calculate(b.getRoomCharges(), gstService.roomRate(perNight)));
     }
 }
