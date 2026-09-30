@@ -1,0 +1,42 @@
+import { useState, useEffect, useCallback } from "react";
+import { apiFetch } from "../../api";
+import { useAuth } from "../../context/AuthContext";
+
+// Live order board (tables, room service, online orders). Refreshes every few seconds.
+export default function useBoard(intervalMs = 8000) {
+  const { logout } = useAuth();
+  const [board, setBoard] = useState(null);
+  const [error, setError] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      setBoard(await apiFetch("/api/admin/orders/board"));
+      setError("");
+    } catch (e) {
+      if (e.status === 401) logout();
+      else setError(e.message);
+    }
+  }, [logout]);
+
+  useEffect(() => {
+    load();
+    const t = setInterval(load, intervalMs);
+    return () => clearInterval(t);
+  }, [load, intervalMs]);
+
+  const flash = (text) => { setMsg(text); setTimeout(() => setMsg(""), 3500); };
+
+  // run(orderId, "accept" | "paid" | "cancel", message shown on success)
+  const run = async (id, action, okText) => {
+    try {
+      await apiFetch(`/api/admin/orders/${id}/${action}`, { method: "POST" });
+      flash(okText);
+      await load();
+    } catch (e) {
+      flash("⚠️ " + e.message);
+    }
+  };
+
+  return { board, error, msg, run, reload: load };
+}

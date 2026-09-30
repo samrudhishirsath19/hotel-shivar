@@ -14,6 +14,9 @@ public class RoomRequest {
     @NotBlank(message = "Room number is required")
     private String roomNumber;
 
+    @NotBlank(message = "Room name is required")
+    private String name;
+
     @NotNull(message = "Room type is required")
     private RoomType type;
 
@@ -23,7 +26,12 @@ public class RoomRequest {
 
     private String description;
 
+    private String size;
+
     private Integer capacity;
+
+    /** Comma separated list. */
+    private String amenities;
 
     private String imageUrl;
 

@@ -24,8 +24,12 @@ public class Room {
     @Column(nullable = false, unique = true)
     private String roomNumber;
 
+    /** Display name on the website, e.g. "Deluxe Room". */
+    private String name;
+
+    // varchar (not MySQL ENUM) so new room types can be added without changing the table
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "varchar(30)")
     private RoomType type;
 
     @Column(nullable = false)
@@ -34,8 +38,16 @@ public class Room {
     @Column(length = 2000)
     private String description;
 
+    /** e.g. "280 sq ft" */
+    private String size;
+
     private Integer capacity;
 
+    /** Comma separated, e.g. "King bed, Free Wi-Fi, Air conditioning" */
+    @Column(length = 1000)
+    private String amenities;
+
+    @Column(length = 1000)
     private String imageUrl;
 
     @Column(nullable = false)
