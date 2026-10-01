@@ -1,9 +1,12 @@
+import { useState, useEffect } from "react";
 import PageHeader from "../components/PageHeader";
 import Img from "../components/Img";
+import { apiFetch } from "../api";
 
 const u = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=70`;
 
-const rooms = [
+// Shown only if the backend cannot be reached
+const fallbackRooms = [
   {
     name: "Standard Room",
     price: 1800,
@@ -54,7 +57,26 @@ const rooms = [
   },
 ];
 
+// backend Room -> what this page draws
+const toCard = (r) => ({
+  id: r.id,
+  name: r.name || `Room ${r.roomNumber}`,
+  price: Number(r.pricePerNight),
+  size: r.size || "",
+  guests: r.capacity || 2,
+  image: r.imageUrl || u("photo-1631049307264-da0ec9d70304"),
+  amenities: (r.amenities || "").split(",").map((a) => a.trim()).filter(Boolean),
+});
+
 export default function Rooms({ onBookNow }) {
+  const [rooms, setRooms] = useState(null);
+
+  useEffect(() => {
+    apiFetch("/api/rooms?availableOnly=true")
+      .then((list) => setRooms((list || []).map(toCard)))
+      .catch(() => setRooms(fallbackRooms));
+  }, []);
+
   return (
     <div className="bg-[#F3F5F1]">
       <PageHeader
@@ -64,8 +86,10 @@ export default function Rooms({ onBookNow }) {
       />
 
       <section className="max-w-7xl mx-auto px-4 py-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-        {rooms.map((room) => (
-          <article key={room.name} className="bg-white rounded-lg overflow-hidden shadow-sm flex flex-col">
+        {rooms === null && <p className="text-gray-500 col-span-full text-center">Loading rooms...</p>}
+        {rooms && rooms.length === 0 && <p className="text-gray-500 col-span-full text-center">No rooms available right now.</p>}
+        {(rooms || []).map((room) => (
+          <article key={room.id || room.name} className="bg-white rounded-lg overflow-hidden shadow-sm flex flex-col">
             <Img src={room.image} alt={room.name} className="h-56 w-full object-cover" />
 
             <div className="p-6 flex flex-col flex-1">
@@ -73,7 +97,7 @@ export default function Rooms({ onBookNow }) {
                 <h2 className="font-serif text-2xl text-[#1F3B2D]">{room.name}</h2>
               </div>
               <p className="text-sm text-gray-500 mt-1">
-                {room.size} · Up to {room.guests} guests
+                {room.size ? room.size + " · " : ""}Up to {room.guests} guests
               </p>
 
               <ul className="mt-4 space-y-1.5 text-sm text-gray-700 flex-1">

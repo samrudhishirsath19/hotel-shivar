@@ -1,19 +1,48 @@
-import { createContext, useContext, useState, useEffect } from "react";
-const AuthContext = createContext();
-const defaultUsers = [
-  { id: 1, username: "superadmin", password: "admin@123", role: "superadmin", name: "Super Admin" },
-  { id: 2, username: "kitchen", password: "kitchen@123", role: "chef", name: "Kitchen Staff" },
-  { id: 3, username: "manager", password: "manager@123", role: "manager", name: "Manager" },
-];
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { apiFetch, getToken, saveToken, clearToken } from "../api";
+
+const AuthContext = createContext(null);
+
 export function AuthProvider({ children }) {
-  const [users, setUsers] = useState(() => { const s = localStorage.getItem("shivar_users"); return s? JSON.parse(s) : defaultUsers; });
-  const [currentUser, setCurrentUser] = useState(() => { const s = localStorage.getItem("shivar_currentUser"); return s? JSON.parse(s) : null; });
-  useEffect(()=>{localStorage.setItem("shivar_users",JSON.stringify(users))},[users]);
-  useEffect(()=>{localStorage.setItem("shivar_currentUser",JSON.stringify(currentUser))},[currentUser]);
-  const login = (u,p) => { const f = users.find(x=>x.username===u && x.password===p); if(f){setCurrentUser(f); return true;} return false; };
-  const logout = () => setCurrentUser(null);
-  const createUser = (newUser) => setUsers([...users, {id: Date.now(),...newUser}]);
-  const deleteUser = (id) => setUsers(users.filter(u=>u.id!==id));
-  return <AuthContext.Provider value={{users,currentUser,login,logout,createUser,deleteUser}}>{children}</AuthContext.Provider>;
+  const [user, setUser] = useState(null);
+  // true while we check a saved token with the backend on first load
+  const [loading, setLoading] = useState(() => !!getToken());
+
+  const logout = useCallback(() => {
+    clearToken();
+    setUser(null);
+  }, []);
+
+  // On page load / refresh: if a token is saved, ask the backend if it is still valid.
+  useEffect(() => {
+    if (!getToken()) return;
+    let cancelled = false;
+    apiFetch("/api/auth/me")
+      .then((me) => { if (!cancelled) setUser({ email: me.email, name: me.name, role: me.role }); })
+      .catch(() => { if (!cancelled) clearToken(); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const login = async (email, password) => {
+    const data = await apiFetch("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    saveToken(data.token);
+    setUser({ email: data.email, name: data.name, role: data.role });
+    return data;
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
-export const useAuth = () => useContext(AuthContext);
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
+}

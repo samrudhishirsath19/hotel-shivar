@@ -1,66 +1,73 @@
 import { createContext, useContext, useState, useEffect } from "react";
-const CartContext = createContext();
+import { apiFetch } from "../api";
+
+const CartContext = createContext(null);
 export const useCart = () => useContext(CartContext);
+
+// v2: the cart now holds real menu ids from the backend (old carts would point to items that no longer exist)
+const KEY = "shivar_cart_v2";
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState(() => {
-    try { const s = localStorage.getItem("shivar_cart"); return s? JSON.parse(s) : []; } catch { return []; }
+    try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : []; } catch { return []; }
   });
-  const [onlineOrders, setOnlineOrders] = useState(() => {
-    try { const s = localStorage.getItem("shivar_online"); return s? JSON.parse(s) : []; } catch { return []; }
-  });
-
-  useEffect(() => { localStorage.setItem("shivar_cart", JSON.stringify(cart)); }, [cart]);
-  useEffect(() => { localStorage.setItem("shivar_online", JSON.stringify(onlineOrders)); }, [onlineOrders]);
 
   useEffect(() => {
+    try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch { /* storage blocked */ }
+  }, [cart]);
+
+  // keep two open tabs in sync
+  useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === "shivar_cart") setCart(JSON.parse(e.newValue||"[]"));
-      if (e.key === "shivar_online") setOnlineOrders(JSON.parse(e.newValue||"[]"));
+      if (e.key === KEY) {
+        try { setCart(JSON.parse(e.newValue || "[]")); } catch { /* ignore */ }
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  // item = { id, name, price }, delta = +1 / -1
   const addToCart = (item, delta) => {
-    setCart(prev => {
-      const ex = prev.find(p => p.id === item.id);
+    setCart((prev) => {
+      const ex = prev.find((p) => p.id === item.id);
       if (ex) {
         const newQty = ex.qty + delta;
-        if (newQty <= 0) return prev.filter(p => p.id!== item.id);
-        return prev.map(p => p.id === item.id? {...p, qty: newQty } : p);
-      } else {
-        if (delta > 0) return [...prev, {...item, qty: delta }];
-        return prev;
+        if (newQty <= 0) return prev.filter((p) => p.id !== item.id);
+        return prev.map((p) => (p.id === item.id ? { ...p, qty: newQty } : p));
       }
+      if (delta > 0) return [...prev, { id: item.id, name: item.name, price: Number(item.price), qty: delta }];
+      return prev;
     });
   };
 
+  const updateCartQty = (id, qty) =>
+    setCart((prev) => (qty <= 0 ? prev.filter((p) => p.id !== id) : prev.map((p) => (p.id === id ? { ...p, qty } : p))));
+
+  const removeFromCart = (id) => setCart((prev) => prev.filter((p) => p.id !== id));
   const clearCart = () => setCart([]);
 
-  const placeOnlineOrder = () => {
-    if (cart.length === 0) return;
-    const newOrder = {
-      id: Date.now(),
-      time: new Date().toLocaleTimeString(),
-      orders: [...cart],
-      total: cart.reduce((s,i)=>s+i.price*i.qty,0),
-      status: "new"
-    };
-    setOnlineOrders(prev => [newOrder,...prev]);
-    setCart([]);
-  };
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const count = cart.reduce((s, i) => s + i.qty, 0);
 
-  const clearOnlineOrder = (id) => {
-    setOnlineOrders(prev => prev.filter(o => o.id!== id));
+  // Sends the cart to the backend. The manager sees it as a pending online order.
+  const placeOnlineOrder = async (customerName, customerPhone) => {
+    const order = await apiFetch("/api/orders/online", {
+      method: "POST",
+      body: JSON.stringify({
+        customerName,
+        customerPhone,
+        items: cart.map((c) => ({ menuItemId: c.id, quantity: c.qty })),
+      }),
+    });
+    setCart([]);
+    return order;
   };
 
   return (
-    <CartContext.Provider value={{
-      cart, cartItems: cart,
-      addToCart, clearCart,
-      onlineOrders, placeOnlineOrder, clearOnlineOrder
-    }}>
+    <CartContext.Provider
+      value={{ cart, cartItems: cart, total, count, addToCart, updateCartQty, removeFromCart, clearCart, placeOnlineOrder }}
+    >
       {children}
     </CartContext.Provider>
   );
