@@ -2,16 +2,19 @@ import { Fragment, useState, useEffect } from "react";
 import { apiFetch } from "../../api";
 import { inr } from "../../roles";
 import { ymd, daysAgo, fmtDateTime } from "../../dates";
+import useBoard from "./useBoard";
 import { PageTitle } from "./ui";
-import { orderTitle, orderKind } from "./Ticket";
+import { Ticket, Toast, orderTitle, orderKind } from "./Ticket";
 
 export default function BillingPage() {
+  const { board, error: boardError, msg, run } = useBoard();
   const [from, setFrom] = useState(ymd(new Date()));
   const [to, setTo] = useState(ymd(new Date()));
   const [bills, setBills] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(null);
+  const [tick, setTick] = useState(0); // bump to reload the paid list
 
   useEffect(() => {
     if (!from || !to || from > to) return;
@@ -22,15 +25,42 @@ export default function BillingPage() {
       .catch((e) => { if (!cancelled) setError(e.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [from, to]);
+  }, [from, to, tick]);
+
+  // running orders that still have to be paid: tables, room service and accepted online orders
+  const unpaid = [
+    ...(board?.tables || []).filter((t) => t.order).map((t) => t.order),
+    ...(board?.rooms || []),
+    ...(board?.online || []).filter((o) => o.status === "ACCEPTED"),
+  ].sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+
+  const pay = async (o) => {
+    if (!window.confirm(`Mark ${orderTitle(o)} as paid (${inr(o.total)})?`)) return;
+    if (await run(o.id, "paid", `✅ ${orderTitle(o)} - bill paid`)) setTick((t) => t + 1);
+  };
 
   const quick = (a, b) => { setFrom(daysAgo(a)); setTo(daysAgo(b)); };
   const total = bills.reduce((s, b) => s + Number(b.total), 0);
 
   return (
     <div>
-      <PageTitle title="Billing" sub="Paid bills (restaurant, room service and online)" />
+      <Toast msg={msg} />
+      <PageTitle title="Billing" sub="Take payment for running orders, and see all paid bills" />
 
+      {(boardError || error) && <p className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{boardError || error}</p>}
+
+      <h2 className="mb-3 font-bold text-gray-900">Unpaid bills ({unpaid.length})</h2>
+      {board && unpaid.length === 0 && <p className="text-sm text-gray-400 mb-6">No unpaid bills right now.</p>}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-10">
+        {unpaid.map((o) => (
+          <Ticket key={o.id} title={orderTitle(o)} sub={o.orderType === "ONLINE" ? `${o.customerName} · ${o.customerPhone}` : `KOT #${o.id}`}
+            badge={orderKind(o)} order={o}>
+            <button onClick={() => pay(o)} className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-bold">Bill Paid</button>
+          </Ticket>
+        ))}
+      </div>
+
+      <h2 className="mb-3 font-bold text-gray-900">Paid bills</h2>
       <div className="flex flex-wrap items-end gap-3 bg-white border rounded-xl p-4">
         <div><label className="block text-xs text-gray-500">From</label><input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm" /></div>
         <div><label className="block text-xs text-gray-500">To</label><input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm" /></div>
@@ -39,8 +69,6 @@ export default function BillingPage() {
         <button onClick={() => quick(6, 0)} className="px-3 py-1.5 rounded-lg bg-gray-100 text-xs font-bold">Last 7 days</button>
         {loading && <span className="text-xs text-gray-400">Loading...</span>}
       </div>
-
-      {error && <p className="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
 
       <div className="mt-4 grid grid-cols-2 gap-4 max-w-md">
         <div className="bg-white rounded-xl border p-4"><p className="text-xs text-gray-500">Bills</p><p className="text-2xl font-bold">{bills.length}</p></div>

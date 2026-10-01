@@ -2,6 +2,7 @@ package com.hotelshivar.backend.controller;
 
 import com.hotelshivar.backend.dto.OrderBoard;
 import com.hotelshivar.backend.entity.FoodOrder;
+import com.hotelshivar.backend.entity.enums.KitchenStatus;
 import com.hotelshivar.backend.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,18 @@ public class StaffOrderController {
     @PostMapping("/{id}/accept")
     public FoodOrder accept(@PathVariable Long id) {
         return orderService.accept(id);
+    }
+
+    /** Kitchen: the order has been made. */
+    @PostMapping("/{id}/ready")
+    public FoodOrder ready(@PathVariable Long id) {
+        return orderService.setKitchenStatus(id, KitchenStatus.READY);
+    }
+
+    /** Kitchen: back to being made. */
+    @PostMapping("/{id}/preparing")
+    public FoodOrder preparing(@PathVariable Long id) {
+        return orderService.setKitchenStatus(id, KitchenStatus.PREPARING);
     }
 
     /** Bill paid: frees the table / closes the order and counts it as a sale. */

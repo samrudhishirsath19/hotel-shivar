@@ -50,16 +50,24 @@ If a room still does not save, send the red error text shown above the form (or 
 ## Super admin pages and what they use
 | Page        | What it shows | Backend |
 |-------------|---------------|---------|
-| Dashboard   | Occupied Tables, Online Orders, Today's Revenue, Pending KOT + sales charts | /api/admin/orders/board, /api/admin/reports/sales |
-| KOT         | Every running order as a ticket (tables, room service, accepted online); new online orders wait for Accept | /api/admin/orders/** |
+| Dashboard   | Occupied Tables, Online Orders, Today's Revenue, Pending KOT + a 7-day sales graph (one screen, no scrolling). "Full sales report" opens /super-admin/sales with all charts | /api/admin/orders/board, /api/admin/reports/sales |
+| KOT         | Tickets split into "Being prepared" and "Ready". Mark Ready / Back to Preparing, Cancel. "+ New order" takes Table / Room / Online (phone) orders. No payment here | /api/admin/orders/**, /api/orders/** |
 | Menu        | Add / edit / hide / delete menu items | /api/menu, /api/admin/menu |
-| Tables      | Which tables are occupied, Bill Paid frees the table | /api/admin/orders/** |
+| Tables      | Which tables are occupied, with their items and kitchen status | /api/admin/orders/board |
 | Reservation | Room bookings (confirm / complete / cancel) and Rooms (add / edit / delete) | /api/bookings, /api/rooms |
-| Billing     | Paid bills by date, with items (super admin + manager can call it) | /api/admin/billing |
+| Billing     | "Unpaid bills" (running orders) with the Bill Paid button; a paid order moves into "Paid bills" (by date, with items) | /api/admin/orders/{id}/paid, /api/admin/billing |
 | Inventory   | Stock in hand, LOW warning when stock reaches the low-stock level | /api/admin/inventory |
 | Purchase    | Record purchases; stock goes up automatically; deleting a purchase takes it back out | /api/admin/purchases |
 | Staff       | Employee list (name, job title, phone, joined date) - not logins | /api/admin/staff |
 | Users       | Logins per department | /api/admin/users |
 
-"Pending KOT" = every running kitchen ticket: occupied tables + room-service orders + accepted online orders.
+"Pending KOT" = running kitchen tickets that are not Ready yet (occupied tables + room service + accepted online orders).
+Adding an item to a Ready order puts it back to Preparing.
 New tables (admin_users, food_orders, menu_items, inventory_items, purchases, staff_members) are created automatically.
+
+## Website vs dashboard
+- The public Restaurant page only lists the menu; customers order through the cart (Online). The Table / Room / Online switcher is gone from it.
+- Table and room orders are taken in the dashboard (KOT > "+ New order"). /api/orders/adjust, /current and /config now need a login
+  (Super Admin, Manager or Restaurant). Only POST /api/orders/online (customer cart) is still public.
+- Kitchen department: can mark orders Ready / Preparing on the /manager page.
+- New column food_orders.kitchen_status is added automatically; old orders without a value show as Preparing.

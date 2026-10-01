@@ -27,12 +27,12 @@ export default function SuperAdminLayout() {
   };
 
   const itemCls = ({ isActive }) =>
-    `flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-[15px] transition-colors ${
+    `flex items-center gap-2 px-3.5 py-2 md:py-0 md:flex-1 md:min-h-[30px] md:max-h-[46px] rounded-lg text-[15px] transition-colors ${
       isActive ? "bg-[#B8893C] text-white font-medium" : "text-white/90 hover:bg-white/10"
     }`;
 
   return (
-    <div className="min-h-screen bg-gray-50 md:flex">
+    <div className="min-h-screen bg-gray-50 md:flex md:h-screen md:overflow-hidden">
       {/* phone: top bar with a menu button */}
       <div className="md:hidden flex items-center justify-between bg-[#1F3B2D] text-white px-4 h-14">
         <span className="font-bold text-lg">Hotel Shivar</span>
@@ -42,14 +42,14 @@ export default function SuperAdminLayout() {
       </div>
 
       <aside
-        className={`${open ? "flex" : "hidden"} md:flex flex-col md:w-[267px] md:shrink-0 md:sticky md:top-0 md:h-screen bg-[#1F3B2D] text-white px-4 py-5 overflow-y-auto`}
+        className={`${open ? "flex" : "hidden"} md:flex flex-col md:w-[267px] md:shrink-0 md:h-screen bg-[#1F3B2D] text-white px-4 py-4 md:overflow-hidden`}
       >
         <div className="px-1">
           <h2 className="text-xl font-bold leading-tight">Hotel Shivar</h2>
           <p className="text-xs text-white/70 mt-1">Super Admin Panel</p>
         </div>
 
-        <nav className="mt-7 space-y-1">
+        <nav className="mt-5 flex flex-col gap-1 md:flex-1 md:min-h-0">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end} className={itemCls} onClick={() => setOpen(false)}>
               {n.icon && <span className="text-sm">{n.icon}</span>}
@@ -58,7 +58,7 @@ export default function SuperAdminLayout() {
           ))}
         </nav>
 
-        <div className="mt-auto pt-4 border-t border-white/10 space-y-3">
+        <div className="mt-2 md:mt-auto pt-3 border-t border-white/10 space-y-2">
           <Link to="/" className="block text-center py-2.5 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-medium">
             View Website
           </Link>
@@ -68,7 +68,7 @@ export default function SuperAdminLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0 p-6 pt-8">
+      <main className="flex-1 min-w-0 md:h-screen md:overflow-y-auto p-6 pt-6">
         <Outlet />
       </main>
     </div>

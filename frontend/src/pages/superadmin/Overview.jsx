@@ -1,22 +1,22 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
 import { inr } from "../../roles";
-import { ymd } from "../../dates";
+import { daysAgo, ymd } from "../../dates";
 import useBoard from "./useBoard";
-import SalesTab from "../admin/SalesTab";
+import { isReady } from "./Ticket";
+import { LineChart, Donut, COLORS } from "../../components/charts";
 
+// One-screen dashboard: 4 cards + a small 7-day sales graph. The full report is on its own page.
 export default function Overview() {
   const { board, error } = useBoard();
-  const [revenue, setRevenue] = useState(null);
+  const [report, setReport] = useState(null);
 
-  // today's revenue (food bills paid today + room bookings made today)
   useEffect(() => {
-    const load = () => {
-      const day = ymd(new Date());
-      apiFetch(`/api/admin/reports/sales?from=${day}&to=${day}`)
-        .then((r) => setRevenue(Number(r.totals.total)))
+    const load = () =>
+      apiFetch(`/api/admin/reports/sales?from=${daysAgo(6)}&to=${ymd(new Date())}`)
+        .then(setReport)
         .catch(() => {});
-    };
     load();
     const t = setInterval(load, 30000);
     return () => clearInterval(t);
@@ -26,38 +26,65 @@ export default function Overview() {
   const occupied = tables.filter((t) => t.order).length;
   const rooms = board?.rooms || [];
   const online = board?.online || [];
-  const acceptedOnline = online.filter((o) => o.status === "ACCEPTED").length;
-  // every running kitchen ticket: occupied tables + room service + accepted online orders
-  const pendingKot = occupied + rooms.length + acceptedOnline;
+  // running kitchen tickets that are not ready yet
+  const kitchen = [...tables.filter((t) => t.order).map((t) => t.order), ...rooms, ...online.filter((o) => o.status === "ACCEPTED")];
+  const pendingKot = kitchen.filter((o) => !isReady(o)).length;
+
+  const days = report?.days || [];
+  const num = (x) => Number(x || 0);
+  const todayRevenue = days.length ? num(days[days.length - 1].total) : null;
 
   const cards = [
     ["Occupied Tables", board ? `${occupied} / ${board.tableCount}` : "-", "text-gray-900"],
     ["Online Orders", board ? online.length : "-", "text-blue-600"],
-    ["Today's Revenue", revenue === null ? "-" : inr(revenue), "text-green-600"],
+    ["Today's Revenue", todayRevenue === null ? "-" : inr(todayRevenue), "text-green-600"],
     ["Pending KOT", board ? pendingKot : "-", "text-orange-500"],
   ];
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+        <Link to="/super-admin/sales" className="text-sm font-semibold text-[#B8893C] hover:underline">Full sales report →</Link>
+      </div>
 
-      {error && <p className="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
+      {error && <p className="mt-3 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
 
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map(([label, value, color]) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-200 px-5 py-5 shadow-sm">
+          <div key={label} className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm">
             <p className="text-sm text-gray-600">{label}</p>
             <p className={`text-3xl font-bold mt-1 ${color}`}>{value}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-6 bg-blue-50 border border-blue-100 rounded-xl px-5 py-4 text-sm text-gray-700">
+      <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl px-5 py-3 text-sm text-gray-700">
         Tip: This data is live from the backend and refreshes automatically every few seconds.
       </div>
 
-      <h2 className="mt-10 mb-4 text-xl font-bold text-gray-900">Sales</h2>
-      <SalesTab />
+      <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 bg-white rounded-xl border p-4 shadow-sm">
+          <h3 className="font-bold text-[#1F3B2D] mb-2">Sales - last 7 days</h3>
+          <LineChart
+            labels={days.map((d) => d.date)}
+            height={190}
+            maxHeight={230}
+            series={[
+              { name: "Total", color: COLORS.total, values: days.map((d) => num(d.total)) },
+              { name: "Food & drinks", color: COLORS.food, values: days.map((d) => num(d.food)) },
+              { name: "Rooms", color: COLORS.rooms, values: days.map((d) => num(d.rooms)) },
+            ]}
+          />
+        </div>
+        <div className="bg-white rounded-xl border p-4 shadow-sm">
+          <h3 className="font-bold text-[#1F3B2D] mb-2">Food vs rooms</h3>
+          <Donut slices={[
+            { label: "Food & drinks", value: num(report?.totals?.food), color: COLORS.food },
+            { label: "Rooms", value: num(report?.totals?.rooms), color: COLORS.rooms },
+          ]} />
+        </div>
+      </div>
     </div>
   );
 }

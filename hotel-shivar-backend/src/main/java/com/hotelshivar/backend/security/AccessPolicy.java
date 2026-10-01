@@ -32,18 +32,22 @@ public class AccessPolicy {
 
         // Public website reads
         if (get && (under(path, "/api/rooms") || under(path, "/api/menu") || under(path, "/api/offers")
-                || under(path, "/api/gallery")
-                || path.equals("/api/orders/config") || path.equals("/api/orders/current"))) {
+                || under(path, "/api/gallery"))) {
             return null;
         }
         // Public customer submissions
         if (post && (path.equals("/api/bookings") || path.equals("/api/contact") || path.equals("/api/banquet")
-                || path.equals("/api/orders/adjust") || path.equals("/api/orders/online"))) {
+                || path.equals("/api/orders/online"))) {
             return null;
         }
 
+        // Taking table / room orders is done from the dashboard, so it needs a login
+        if (under(path, "/api/orders")) return ORDER_EDIT;
+
         if (under(path, "/api/bookings")) return FRONT_DESK;
         if (under(path, "/api/contact") || under(path, "/api/banquet")) return MANAGEMENT;
+        // kitchen staff may mark an order ready / back to preparing
+        if (post && path.matches("/api/admin/orders/\\d+/(ready|preparing)")) return ORDER_VIEW;
         if (under(path, "/api/admin/orders")) return get ? ORDER_VIEW : ORDER_EDIT;
         if (under(path, "/api/admin/billing")) return MANAGEMENT;
 

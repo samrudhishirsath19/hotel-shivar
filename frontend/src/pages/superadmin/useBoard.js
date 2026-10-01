@@ -27,14 +27,16 @@ export default function useBoard(intervalMs = 8000) {
 
   const flash = (text) => { setMsg(text); setTimeout(() => setMsg(""), 3500); };
 
-  // run(orderId, "accept" | "paid" | "cancel", message shown on success)
+  // run(orderId, "accept" | "ready" | "preparing" | "paid" | "cancel", message shown on success) -> true if it worked
   const run = async (id, action, okText) => {
     try {
       await apiFetch(`/api/admin/orders/${id}/${action}`, { method: "POST" });
       flash(okText);
       await load();
+      return true;
     } catch (e) {
       flash("⚠️ " + e.message);
+      return false;
     }
   };
 

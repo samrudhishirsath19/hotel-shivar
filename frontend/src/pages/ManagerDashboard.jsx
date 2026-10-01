@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../api";
+import OrderDesk from "../components/OrderDesk";
 import { roleLabel, isSuper, canSeeOrders, canEditOrders, canSeeBookings, inr } from "../roles";
 
 const timeOf = (iso) => {
@@ -27,6 +28,20 @@ function Lines({ order }) {
   );
 }
 
+function KitchenRow({ order, onSet }) {
+  const ready = order.kitchenStatus === "READY";
+  return (
+    <div className="mt-3 flex items-center justify-between gap-2">
+      <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${ready ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+        {ready ? "READY" : "PREPARING"}
+      </span>
+      <button onClick={() => onSet(order.id, ready ? "preparing" : "ready")} className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-bold">
+        {ready ? "Back to preparing" : "Mark ready"}
+      </button>
+    </div>
+  );
+}
+
 const STATUS_STYLE = {
   PENDING: "bg-yellow-100 text-yellow-800",
   CONFIRMED: "bg-blue-100 text-blue-700",
@@ -45,6 +60,7 @@ export default function ManagerDashboard() {
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+  const [deskOpen, setDeskOpen] = useState(false);
 
   const flash = (text) => { setMsg(text); setTimeout(() => setMsg(""), 3500); };
 
@@ -134,6 +150,20 @@ export default function ManagerDashboard() {
 
         {seeOrders && (
           <>
+            {/* TAKE ORDER (table / room / online) - staff only, not on the public website */}
+            {editOrders && (
+              <div className="mt-6">
+                <button onClick={() => setDeskOpen((o) => !o)} className="px-5 py-2 rounded-full bg-[#B8893C] text-white text-sm font-bold">
+                  {deskOpen ? "Close order desk" : "➕ Take Order (Table / Room / Online)"}
+                </button>
+                {deskOpen && (
+                  <div className="mt-4 bg-white border rounded-2xl p-4">
+                    <OrderDesk />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* SUMMARY */}
             <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
@@ -167,7 +197,7 @@ export default function ManagerDashboard() {
                     ) : (
                       <>
                         <p className="text-[11px] text-gray-400 mt-1">Since {timeOf(o.createdAt)}</p>
-                        <Lines order={o} />
+                        <Lines order={o} />{o.status !== "PENDING" && <KitchenRow order={o} onSet={(id, a) => orderAction(id, a, a === "ready" ? "✅ Marked ready" : "Back to preparing")} />}
                         {editOrders && (
                           <div className="flex gap-2 mt-3">
                             <button onClick={() => orderAction(o.id, "paid", `✅ Table ${t.number} - bill paid - clean the table`)} className="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs font-bold">Bill Paid - Free Table</button>
@@ -191,7 +221,7 @@ export default function ManagerDashboard() {
                     <h3 className="font-bold">Room {o.roomNumber}</h3>
                     <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-bold">{timeOf(o.createdAt)}</span>
                   </div>
-                  <Lines order={o} />
+                  <Lines order={o} />{o.status !== "PENDING" && <KitchenRow order={o} onSet={(id, a) => orderAction(id, a, a === "ready" ? "✅ Marked ready" : "Back to preparing")} />}
                   {editOrders && (
                     <div className="flex gap-2 mt-3">
                       <button onClick={() => orderAction(o.id, "paid", `✅ Room ${o.roomNumber} - bill paid`)} className="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs font-bold">Bill Paid - Complete</button>
@@ -215,7 +245,7 @@ export default function ManagerDashboard() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">{o.customerName} · {o.customerPhone}</p>
-                  <Lines order={o} />
+                  <Lines order={o} />{o.status !== "PENDING" && <KitchenRow order={o} onSet={(id, a) => orderAction(id, a, a === "ready" ? "✅ Marked ready" : "Back to preparing")} />}
                   {editOrders && (
                     <div className="flex gap-2 mt-3">
                       {o.status === "PENDING" ? (

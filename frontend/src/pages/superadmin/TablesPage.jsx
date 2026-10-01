@@ -1,9 +1,10 @@
+import { Link } from "react-router-dom";
 import useBoard from "./useBoard";
 import { PageTitle } from "./ui";
-import { Ticket, OrderActions, Toast } from "./Ticket";
+import { Ticket, Toast } from "./Ticket";
 
 export default function TablesPage() {
-  const { board, error, msg, run } = useBoard();
+  const { board, error, msg } = useBoard();
   const tables = board?.tables || [];
   const occupied = tables.filter((t) => t.order).length;
 
@@ -16,8 +17,8 @@ export default function TablesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {tables.map((t) =>
           t.order ? (
-            <Ticket key={t.number} title={`Table ${t.number}`} badge="OCCUPIED" order={t.order}>
-              <OrderActions order={t.order} run={run} paidLabel="Bill Paid - Free Table" />
+            <Ticket key={t.number} title={`Table ${t.number}`} sub={`KOT #${t.order.id}`} badge="OCCUPIED" order={t.order}>
+              <Link to="/super-admin/billing" className="flex-1 text-center py-2 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">Open bill in Billing →</Link>
             </Ticket>
           ) : (
             <div key={t.number} className="bg-white rounded-xl border-2 border-green-200 p-4">

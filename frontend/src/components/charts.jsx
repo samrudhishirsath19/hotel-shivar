@@ -69,14 +69,14 @@ function Axes({ g, labels, xAt, height }) {
 }
 
 // series = [{ name, color, values: [numbers, same length as labels] }]
-export function LineChart({ labels, series, height = 260 }) {
+export function LineChart({ labels, series, height = 260, maxHeight }) {
   const all = series.flatMap((s) => s.values);
   if (labels.length === 0 || all.every((v) => !v)) return <EmptyChart />;
   const g = geometry(labels, series, height);
   const xAt = (i) => g.ml + (labels.length === 1 ? g.iw / 2 : (i * g.iw) / (labels.length - 1));
   return (
     <div>
-      <svg viewBox={`0 0 ${g.W} ${height}`} className="w-full h-auto" role="img">
+      <svg viewBox={`0 0 ${g.W} ${height}`} className="w-full h-auto" style={maxHeight ? { maxHeight } : undefined} role="img">
         <Axes g={g} labels={labels} xAt={xAt} height={height} />
         {series.map((s) => (
           <g key={s.name}>

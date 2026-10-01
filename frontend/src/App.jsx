@@ -28,6 +28,7 @@ import InventoryPage from "./pages/superadmin/InventoryPage";
 import PurchasePage from "./pages/superadmin/PurchasePage";
 import StaffPage from "./pages/superadmin/StaffPage";
 import MenuTab from "./pages/admin/MenuTab";
+import SalesTab from "./pages/admin/SalesTab";
 import UsersTab from "./pages/admin/UsersTab";
 import { PageTitle } from "./pages/superadmin/ui";
 
@@ -80,6 +81,7 @@ export default function App() {
             {/* ---------- super admin panel: sidebar layout, super admin only ---------- */}
             <Route path="/super-admin" element={<ProtectedRoute roles={["SUPER_ADMIN"]}><SuperAdminLayout /></ProtectedRoute>}>
               <Route index element={<Overview />} />
+              <Route path="sales" element={<><PageTitle title="Sales report" sub="Day-wise sales of food items and rooms" /><SalesTab /></>} />
               <Route path="kot" element={<KotPage />} />
               <Route path="menu" element={<><PageTitle title="Menu" sub="Add, edit, hide or delete the items customers see" /><MenuTab /></>} />
               <Route path="tables" element={<TablesPage />} />

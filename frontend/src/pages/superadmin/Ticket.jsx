@@ -16,8 +16,14 @@ export const orderTitle = (o) =>
 export const orderKind = (o) =>
   o.orderType === "TABLE" ? "TABLE" : o.orderType === "ROOM" ? "ROOM SERVICE" : "ONLINE";
 
-// One kitchen ticket: items, total, and action buttons passed as children.
-export function Ticket({ title, sub, badge, badgeClass = "bg-orange-100 text-orange-700", tone = "border-orange-300", order, children }) {
+// Orders saved before the kitchen column existed have no value - treat them as "preparing".
+export const isReady = (o) => o.kitchenStatus === "READY";
+
+// One ticket: items, total, kitchen progress and action buttons (children).
+export function Ticket({ title, sub, badge, badgeClass = "bg-orange-100 text-orange-700", order, showKitchen = true, children }) {
+  const kitchen = showKitchen && order.status !== "PENDING";
+  const ready = isReady(order);
+  const tone = !kitchen ? "border-yellow-300" : ready ? "border-green-300" : "border-orange-300";
   return (
     <div className={`bg-white rounded-xl border-2 p-4 ${tone}`}>
       <div className="flex justify-between items-start gap-2">
@@ -30,6 +36,13 @@ export function Ticket({ title, sub, badge, badgeClass = "bg-orange-100 text-ora
       <p className="text-[11px] text-gray-400 mt-1">
         Ordered {fmtTime(order.createdAt)} · {minutesSince(order.createdAt)} min ago
       </p>
+
+      {kitchen && (
+        <div className={`mt-3 rounded-lg px-3 py-2 text-sm font-bold ${ready ? "bg-green-50 text-green-700" : "bg-orange-50 text-orange-700"}`}>
+          {ready ? "✅ Ready - prepared" : "🍳 Preparing..."}
+        </div>
+      )}
+
       <div className="mt-3 divide-y">
         {order.lines.map((l) => (
           <div key={l.menuItemId} className="flex justify-between text-sm py-1">
@@ -47,23 +60,29 @@ export function Ticket({ title, sub, badge, badgeClass = "bg-orange-100 text-ora
   );
 }
 
-// Accept / Bill Paid / Cancel buttons for an order.
-export function OrderActions({ order, run, paidLabel = "Bill Paid" }) {
-  const pending = order.status === "PENDING";
+// New online order: Accept / Reject
+export function AcceptActions({ order, run }) {
   const t = orderTitle(order);
   return (
     <>
-      {pending ? (
-        <button onClick={() => run(order.id, "accept", `✅ ${t} accepted`)} className="flex-1 py-2 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">Accept Order</button>
+      <button onClick={() => run(order.id, "accept", `✅ ${t} accepted - sent to kitchen`)} className="flex-1 py-2 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">Accept Order</button>
+      <button onClick={() => window.confirm(`Reject ${t}?`) && run(order.id, "cancel", `${t} rejected`)} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">Reject</button>
+    </>
+  );
+}
+
+// Order in the kitchen: Mark ready / Back to preparing, and Cancel. (Payment is done in Billing.)
+export function KitchenActions({ order, run }) {
+  const t = orderTitle(order);
+  const ready = isReady(order);
+  return (
+    <>
+      {ready ? (
+        <button onClick={() => run(order.id, "preparing", `${t} is being prepared again`)} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">Back to Preparing</button>
       ) : (
-        <button onClick={() => run(order.id, "paid", `✅ ${t} - bill paid`)} className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-bold">{paidLabel}</button>
+        <button onClick={() => run(order.id, "ready", `✅ ${t} is ready`)} className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-bold">Mark Ready</button>
       )}
-      <button
-        onClick={() => window.confirm(pending ? `Reject ${t}?` : `Cancel ${t}?`) && run(order.id, "cancel", `${t} cancelled`)}
-        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold"
-      >
-        {pending ? "Reject" : "Cancel"}
-      </button>
+      <button onClick={() => window.confirm(`Cancel ${t}?`) && run(order.id, "cancel", `${t} cancelled`)} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">Cancel</button>
     </>
   );
 }

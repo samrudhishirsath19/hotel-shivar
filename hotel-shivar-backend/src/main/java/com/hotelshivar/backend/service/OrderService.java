@@ -6,6 +6,7 @@ import com.hotelshivar.backend.dto.OrderBoard;
 import com.hotelshivar.backend.entity.FoodOrder;
 import com.hotelshivar.backend.entity.MenuItem;
 import com.hotelshivar.backend.entity.OrderLine;
+import com.hotelshivar.backend.entity.enums.KitchenStatus;
 import com.hotelshivar.backend.entity.enums.OrderStatus;
 import com.hotelshivar.backend.entity.enums.OrderType;
 import com.hotelshivar.backend.exception.BadRequestException;
@@ -106,6 +107,7 @@ public class OrderService {
             return empty(type, number);
         }
         order.setTotal(computeTotal(order));
+        order.setKitchenStatus(KitchenStatus.PREPARING); // new / changed items must be made
         return orderRepository.save(order);
     }
 
@@ -185,6 +187,18 @@ public class OrderService {
             throw new BadRequestException("Only a pending online order can be accepted");
         }
         o.setStatus(OrderStatus.ACCEPTED);
+        o.setKitchenStatus(KitchenStatus.PREPARING);
+        return orderRepository.save(o);
+    }
+
+    /** Kitchen marks a running order as made (READY) or sends it back to PREPARING. */
+    @Transactional
+    public FoodOrder setKitchenStatus(Long id, KitchenStatus status) {
+        FoodOrder o = get(id);
+        if (o.getStatus() != OrderStatus.OPEN && o.getStatus() != OrderStatus.ACCEPTED) {
+            throw new BadRequestException("Only a running order in the kitchen can be updated");
+        }
+        o.setKitchenStatus(status);
         return orderRepository.save(o);
     }
 

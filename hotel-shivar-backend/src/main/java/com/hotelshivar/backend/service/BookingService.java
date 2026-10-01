@@ -70,7 +70,10 @@ public class BookingService {
     public Booking updateStatus(Long id, BookingStatus status) {
         Booking booking = getBookingById(id);
         booking.setStatus(status);
-        return bookingRepository.save(booking);
+        bookingRepository.save(booking);
+        // Read it again: save() hands back a copy whose room is a lazy proxy, and the JSON response
+        // cannot load it after the database session is closed ("could not initialize proxy ... no Session").
+        return getBookingById(id);
     }
 
     public void cancelBooking(Long id) {

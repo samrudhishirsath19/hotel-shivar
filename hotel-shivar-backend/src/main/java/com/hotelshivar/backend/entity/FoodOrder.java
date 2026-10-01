@@ -1,5 +1,6 @@
 package com.hotelshivar.backend.entity;
 
+import com.hotelshivar.backend.entity.enums.KitchenStatus;
 import com.hotelshivar.backend.entity.enums.OrderStatus;
 import com.hotelshivar.backend.entity.enums.OrderType;
 import jakarta.persistence.*;
@@ -45,6 +46,15 @@ public class FoodOrder {
     @Column(nullable = false, columnDefinition = "varchar(30)")
     @Builder.Default
     private OrderStatus status = OrderStatus.OPEN;
+
+    /**
+     * Kitchen progress (PREPARING / READY). Kept nullable on purpose: orders saved before this
+     * column existed have no value, and the screens treat "no value" as PREPARING.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar(30)")
+    @Builder.Default
+    private KitchenStatus kitchenStatus = KitchenStatus.PREPARING;
 
     @Column(nullable = false)
     @Builder.Default
