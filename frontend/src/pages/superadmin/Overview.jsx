@@ -5,9 +5,9 @@ import { inr } from "../../roles";
 import { daysAgo, ymd } from "../../dates";
 import useBoard from "./useBoard";
 import { isReady } from "./Ticket";
-import { LineChart, Donut, COLORS } from "../../components/charts";
+import { BarChart, Donut, COLORS } from "../../components/charts";
 
-// One-screen dashboard: 4 cards + a small 7-day sales graph. The full report is on its own page.
+// One-screen dashboard: 4 cards + a small 7-day sales bar graph. The full report is on its own page.
 export default function Overview() {
   const { board, error } = useBoard();
   const [report, setReport] = useState(null);
@@ -65,13 +65,13 @@ export default function Overview() {
 
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white rounded-xl border p-4 shadow-sm">
-          <h3 className="font-bold text-[#1F3B2D] mb-2">Sales - last 7 days</h3>
-          <LineChart
+          <h3 className="font-bold text-[#1F3B2D]">Sales - last 7 days</h3>
+          <p className="text-xs text-gray-500 mb-2">Food & drinks and rooms side by side for each day</p>
+          <BarChart
             labels={days.map((d) => d.date)}
-            height={190}
-            maxHeight={230}
+            height={220}
+            maxHeight={260}
             series={[
-              { name: "Total", color: COLORS.total, values: days.map((d) => num(d.total)) },
               { name: "Food & drinks", color: COLORS.food, values: days.map((d) => num(d.food)) },
               { name: "Rooms", color: COLORS.rooms, values: days.map((d) => num(d.rooms)) },
             ]}

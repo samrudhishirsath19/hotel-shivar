@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../api";
 import { inr } from "../../roles";
-import { LineChart, BarChart, Donut, HBar, COLORS } from "../../components/charts";
+import { BarChart, Donut, HBar, COLORS } from "../../components/charts";
 
 const ymd = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -27,6 +27,7 @@ export default function SalesTab() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [itemDay, setItemDay] = useState("");
+  const [dayItems, setDayItems] = useState([]);
 
   useEffect(() => {
     if (!from || !to || from > to) return;
@@ -46,6 +47,16 @@ export default function SalesTab() {
     return () => { cancelled = true; };
   }, [from, to]);
 
+  // "items sold on one day": the calendar can pick any day, so load that day on its own
+  useEffect(() => {
+    if (!itemDay) { setDayItems([]); return; }
+    let cancelled = false;
+    apiFetch(`/api/admin/reports/sales?from=${itemDay}&to=${itemDay}`)
+      .then((r) => { if (!cancelled) setDayItems(r.itemsByDay?.[itemDay] || []); })
+      .catch(() => { if (!cancelled) setDayItems([]); });
+    return () => { cancelled = true; };
+  }, [itemDay]);
+
   const quick = (n) => { setFrom(daysAgo(n)); setTo(daysAgo(0)); };
 
   const days = report?.days || [];
@@ -53,7 +64,7 @@ export default function SalesTab() {
   const num = (x) => Number(x || 0);
   const totals = report?.totals;
 
-  const itemsOnDay = (report?.itemsByDay?.[itemDay] || []).map((i) => ({
+  const itemsOnDay = dayItems.map((i) => ({
     label: i.name, value: num(i.revenue), note: `${i.quantity} sold`,
   }));
   const topItems = (report?.items || []).slice(0, 10).map((i) => ({
@@ -103,11 +114,10 @@ export default function SalesTab() {
 
           {/* OVERALL */}
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <Card title="Day-wise total sales" sub="Food + rooms for each day (line chart)" className="lg:col-span-2">
-              <LineChart
+            <Card title="Day-wise total sales" sub="Food & drinks and rooms side by side for each day (bar chart)" className="lg:col-span-2">
+              <BarChart
                 labels={labels}
                 series={[
-                  { name: "Total", color: COLORS.total, values: days.map((d) => num(d.total)) },
                   { name: "Food & drinks", color: COLORS.food, values: days.map((d) => num(d.food)) },
                   { name: "Rooms", color: COLORS.rooms, values: days.map((d) => num(d.rooms)) },
                 ]}
@@ -130,12 +140,10 @@ export default function SalesTab() {
             <Card title="Top items in this period" sub="By sales amount">
               <HBar rows={topItems} color={COLORS.food} />
             </Card>
-            <Card title="Items sold on one day" sub="Pick a day">
-              <select value={itemDay} onChange={(e) => setItemDay(e.target.value)} className="mb-3 border rounded-lg px-3 py-1.5 text-sm w-full">
-                {Object.keys(report.itemsByDay || {}).length === 0 && <option value="">No item sales</option>}
-                {Object.keys(report.itemsByDay || {}).map((d) => <option key={d} value={d}>{prettyDay(d)}</option>)}
-              </select>
-              <HBar rows={itemsOnDay} color="#2f6b4f" empty="No item sales" />
+            <Card title="Items sold on one day" sub="Pick a day from the calendar">
+              <input type="date" value={itemDay} max={daysAgo(0)} onChange={(e) => setItemDay(e.target.value)} className="mb-1 border rounded-lg px-3 py-1.5 text-sm w-full" />
+              {itemDay && <p className="text-xs text-gray-500 mb-3">{prettyDay(itemDay)}</p>}
+              <HBar rows={itemsOnDay} color="#2f6b4f" empty="No items sold on this day" />
             </Card>
           </div>
 

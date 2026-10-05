@@ -98,7 +98,7 @@ export function LineChart({ labels, series, height = 260, maxHeight }) {
 }
 
 // grouped vertical bars
-export function BarChart({ labels, series, height = 260 }) {
+export function BarChart({ labels, series, height = 260, maxHeight }) {
   const all = series.flatMap((s) => s.values);
   if (labels.length === 0 || all.every((v) => !v)) return <EmptyChart />;
   const g = geometry(labels, series, height);
@@ -107,7 +107,7 @@ export function BarChart({ labels, series, height = 260 }) {
   const xAt = (i) => g.ml + i * band + band / 2;
   return (
     <div>
-      <svg viewBox={`0 0 ${g.W} ${height}`} className="w-full h-auto" role="img">
+      <svg viewBox={`0 0 ${g.W} ${height}`} className="w-full h-auto" style={maxHeight ? { maxHeight } : undefined} role="img">
         <Axes g={g} labels={labels} xAt={xAt} height={height} />
         {labels.map((l, i) =>
           series.map((s, k) => {
@@ -122,6 +122,46 @@ export function BarChart({ labels, series, height = 260 }) {
         )}
       </svg>
       {series.length > 1 && <Legend series={series} />}
+    </div>
+  );
+}
+
+// stacked vertical bars (one column per day) with the day's total written on top
+export function StackedBarChart({ labels, series, height = 260, maxHeight }) {
+  const totals = labels.map((_, i) => series.reduce((s, x) => s + (x.values[i] || 0), 0));
+  if (labels.length === 0 || totals.every((v) => !v)) return <EmptyChart />;
+  const g = geometry(labels, [{ values: totals.map((t) => t * 1.12) }], height);
+  const band = g.iw / labels.length;
+  const barW = Math.min(48, band * 0.6);
+  const xAt = (i) => g.ml + i * band + band / 2;
+  return (
+    <div>
+      <svg viewBox={`0 0 ${g.W} ${height}`} className="w-full h-auto" style={maxHeight ? { maxHeight } : undefined} role="img">
+        <Axes g={g} labels={labels} xAt={xAt} height={height} />
+        {labels.map((l, i) => {
+          let base = 0;
+          return (
+            <g key={l}>
+              {series.map((s) => {
+                const v = s.values[i] || 0;
+                const yTop = g.y(base + v), yBot = g.y(base);
+                base += v;
+                return v > 0 ? (
+                  <rect key={s.name} x={xAt(i) - barW / 2} y={yTop} width={barW} height={Math.max(0, yBot - yTop)} fill={s.color}>
+                    <title>{`${s.name} - ${dayLabel(l)}: ${inr(v)}`}</title>
+                  </rect>
+                ) : null;
+              })}
+              {totals[i] > 0 && labels.length <= 14 && (
+                <text x={xAt(i)} y={g.y(totals[i]) - 5} textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1F3B2D">
+                  {short(totals[i])}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      <Legend series={series} />
     </div>
   );
 }
