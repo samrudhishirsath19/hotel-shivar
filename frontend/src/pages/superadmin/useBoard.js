@@ -3,7 +3,7 @@ import { apiFetch } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 
 // Live order board (tables, room service, online orders). Refreshes every few seconds.
-export default function useBoard(intervalMs = 8000) {
+export default function useBoard(intervalMs = 8000, enabled = true) {
   const { logout } = useAuth();
   const [board, setBoard] = useState(null);
   const [error, setError] = useState("");
@@ -20,14 +20,19 @@ export default function useBoard(intervalMs = 8000) {
   }, [logout]);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     load();
     const t = setInterval(load, intervalMs);
     return () => clearInterval(t);
-  }, [load, intervalMs]);
+  }, [load, intervalMs, enabled]);
 
   const flash = (text) => { setMsg(text); setTimeout(() => setMsg(""), 3500); };
 
+<<<<<<< Updated upstream
   // run(orderId, "accept" | "ready" | "preparing" | "paid" | "cancel", message shown on success) -> true if it worked
+=======
+  // run(orderId, "accept" | "ready" | "send-to-billing" | "paid" | "cancel", message shown on success) -> true if it worked
+>>>>>>> Stashed changes
   const run = async (id, action, okText) => {
     try {
       await apiFetch(`/api/admin/orders/${id}/${action}`, { method: "POST" });

@@ -31,8 +31,19 @@ public class AdminSeeder implements CommandLineRunner {
     @Value("${app.admin.name:Super Admin}")
     private String adminName;
 
+    /** Ready-made Billing department login. Leave app.billing.email empty to skip creating it. */
+    @Value("${app.billing.email:}")
+    private String billingEmail;
+
+    @Value("${app.billing.password:}")
+    private String billingPassword;
+
+    @Value("${app.billing.name:Billing Desk}")
+    private String billingName;
+
     @Override
     public void run(String... args) {
+        seedBilling();
         if (adminUserRepository.findByEmailIgnoreCase(adminEmail).isPresent()) {
             return;
         }
@@ -44,5 +55,22 @@ public class AdminSeeder implements CommandLineRunner {
                 .active(true)
                 .build());
         log.info("Super admin created: {}", adminEmail);
+    }
+
+    private void seedBilling() {
+        if (billingEmail == null || billingEmail.isBlank() || billingPassword == null || billingPassword.isBlank()) {
+            return;
+        }
+        if (adminUserRepository.findByEmailIgnoreCase(billingEmail.trim()).isPresent()) {
+            return;
+        }
+        adminUserRepository.save(AdminUser.builder()
+                .email(billingEmail.trim())
+                .passwordHash(passwordEncoder.encode(billingPassword))
+                .name(billingName)
+                .role("BILLING")
+                .active(true)
+                .build());
+        log.info("Billing user created: {}", billingEmail);
     }
 }

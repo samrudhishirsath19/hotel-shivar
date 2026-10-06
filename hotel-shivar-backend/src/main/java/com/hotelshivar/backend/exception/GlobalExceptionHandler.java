@@ -10,6 +10,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -53,6 +55,17 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT,
                 "Not saved: this value already exists (for example the room number) or the record is used by other data "
                 + "(for example a room that has bookings cannot be deleted - mark it unavailable instead).");
+    }
+
+    /** e.g. an uploaded image that no longer exists */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, "Not found");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleTooBig(MaxUploadSizeExceededException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "The image is too large. Please upload an image smaller than 5 MB.");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch } from "../../api";
+import { apiFetch, apiUpload, imgUrl } from "../../api";
 import { inr } from "../../roles";
 
 const TYPES = ["STANDARD", "SINGLE", "DOUBLE", "DELUXE", "SUITE", "FAMILY"];
@@ -16,6 +16,27 @@ export default function RoomsTab() {
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // pick a photo on this device -> upload it -> its address goes into the image field
+  const uploadImage = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("Please choose an image file (JPG, PNG, WEBP or GIF)."); return; }
+    if (file.size > 5 * 1024 * 1024) { setError("The image is too large. Please choose an image smaller than 5 MB."); return; }
+    setError("");
+    setUploading(true);
+    try {
+      const { url } = await apiUpload("/api/admin/uploads", file);
+      setForm((f) => ({ ...f, imageUrl: url }));
+      flash("✅ Image uploaded");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const load = useCallback(() => {
     apiFetch("/api/rooms").then((d) => setRooms(d || [])).catch((e) => setError(e.message));
@@ -123,8 +144,21 @@ export default function RoomsTab() {
             <input value={form.amenities} onChange={set("amenities")} placeholder="King bed, Free Wi-Fi, Air conditioning" className={inputCls} />
           </div>
           <div className="md:col-span-4">
-            <label className="text-xs font-semibold">Image link</label>
-            <input value={form.imageUrl} onChange={set("imageUrl")} placeholder="https://..." className={inputCls} />
+            <label className="text-xs font-semibold">Room image</label>
+            <div className="mt-1 flex flex-col md:flex-row md:items-center gap-3">
+              <label className={`inline-flex items-center justify-center px-4 py-2 rounded-lg border-2 border-dashed text-sm font-semibold cursor-pointer whitespace-nowrap ${uploading ? "opacity-60 pointer-events-none" : "hover:bg-gray-50"}`}>
+                {uploading ? "Uploading..." : "📁 Upload from device"}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={uploadImage} className="hidden" />
+              </label>
+              <span className="text-xs text-gray-400">or paste a link</span>
+              <input value={form.imageUrl} onChange={set("imageUrl")} placeholder="https://..." className={inputCls + " md:!mt-0 flex-1"} />
+            </div>
+            {form.imageUrl && (
+              <div className="mt-2 flex items-center gap-3">
+                <img src={imgUrl(form.imageUrl)} alt="Room preview" className="h-20 w-32 object-cover rounded-lg border" />
+                <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })} className="text-xs font-bold text-red-600">Remove image</button>
+              </div>
+            )}
           </div>
           <div className="md:col-span-4">
             <label className="text-xs font-semibold">Description</label>
@@ -132,7 +166,7 @@ export default function RoomsTab() {
           </div>
         </div>
         <div className="mt-4 flex gap-2">
-          <button disabled={saving} className="px-5 py-2 rounded-full bg-[#1F3B2D] text-white text-sm font-bold disabled:opacity-60">
+          <button disabled={saving || uploading} className="px-5 py-2 rounded-full bg-[#1F3B2D] text-white text-sm font-bold disabled:opacity-60">
             {saving ? "Saving..." : editingId ? "Save changes" : "Add room"}
           </button>
           {editingId && (
@@ -145,12 +179,13 @@ export default function RoomsTab() {
       <div className="mt-3 bg-white rounded-2xl border overflow-x-auto">
         <table className="w-full text-sm min-w-[640px]">
           <thead className="text-left text-xs text-gray-500 border-b">
-            <tr><th className="p-3">No.</th><th className="p-3">Name</th><th className="p-3">Type</th><th className="p-3">Price / night</th><th className="p-3">Guests</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr>
+            <tr><th className="p-3">Image</th><th className="p-3">No.</th><th className="p-3">Name</th><th className="p-3">Type</th><th className="p-3">Price / night</th><th className="p-3">Guests</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr>
           </thead>
           <tbody>
-            {rooms.length === 0 && <tr><td colSpan="7" className="p-6 text-center text-gray-400">No rooms yet</td></tr>}
+            {rooms.length === 0 && <tr><td colSpan="8" className="p-6 text-center text-gray-400">No rooms yet</td></tr>}
             {rooms.map((r) => (
               <tr key={r.id} className="border-b last:border-0">
+                <td className="p-3">{r.imageUrl ? <img src={imgUrl(r.imageUrl)} alt="" className="h-10 w-14 object-cover rounded" /> : <span className="text-xs text-gray-400">-</span>}</td>
                 <td className="p-3 font-semibold">{r.roomNumber}</td>
                 <td className="p-3">{r.name}</td>
                 <td className="p-3">{r.type}</td>

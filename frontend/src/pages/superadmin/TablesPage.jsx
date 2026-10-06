@@ -1,10 +1,19 @@
 import { Link } from "react-router-dom";
 import useBoard from "./useBoard";
+import { useAuth } from "../../context/AuthContext";
+import { canSee } from "../../roles";
+import { usePanel } from "./panelContext";
 import { PageTitle } from "./ui";
 import { Ticket, Toast } from "./Ticket";
 
 export default function TablesPage() {
   const { board, error, msg } = useBoard();
+<<<<<<< Updated upstream
+=======
+  const { user } = useAuth();
+  const { base } = usePanel();
+  const hasBilling = canSee(user?.role, "billing");
+>>>>>>> Stashed changes
   const tables = board?.tables || [];
   const occupied = tables.filter((t) => t.order).length;
 
@@ -18,7 +27,11 @@ export default function TablesPage() {
         {tables.map((t) =>
           t.order ? (
             <Ticket key={t.number} title={`Table ${t.number}`} sub={`KOT #${t.order.id}`} badge="OCCUPIED" order={t.order}>
+<<<<<<< Updated upstream
               <Link to="/super-admin/billing" className="flex-1 text-center py-2 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">Open bill in Billing →</Link>
+=======
+              {hasBilling && <Link to={`${base}/billing`} className="flex-1 text-center py-2 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">Open bill in Billing →</Link>}
+>>>>>>> Stashed changes
             </Ticket>
           ) : (
             <div key={t.number} className="bg-white rounded-xl border-2 border-green-200 p-4">

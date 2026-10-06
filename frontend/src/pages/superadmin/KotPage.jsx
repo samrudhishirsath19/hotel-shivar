@@ -1,8 +1,15 @@
 import { useState } from "react";
+<<<<<<< Updated upstream
 import { Link } from "react-router-dom";
+=======
+>>>>>>> Stashed changes
 import useBoard from "./useBoard";
+import { useAuth } from "../../context/AuthContext";
+import { canSee } from "../../roles";
+import { usePanel } from "./panelContext";
 import { PageTitle } from "./ui";
 import TakeOrder from "./TakeOrder";
+<<<<<<< Updated upstream
 import { Ticket, AcceptActions, KitchenActions, Toast, orderTitle, orderKind, isReady } from "./Ticket";
 
 // Kitchen Order Tickets. Shows what is still being made and what is already prepared.
@@ -64,6 +71,45 @@ export default function KotPage() {
       </div>
       {board && ready.length === 0 && <p className="text-sm text-gray-400">No prepared orders waiting.</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{ready.map(card)}</div>
+=======
+import OrdersBoard from "./OrdersBoard";
+
+// Kitchen Order Tickets: new orders -> Ready for Serving/Shipping -> sent to Billing.
+// (Payment is not done here - it is in Billing.)
+export default function KotPage() {
+  const boardState = useBoard();
+  const [showNew, setShowNew] = useState(false);
+  const { user } = useAuth();
+  const { base } = usePanel();
+  const role = user?.role;
+  const kitchen = ["SUPER_ADMIN", "MANAGER", "KITCHEN"].includes(role);    // may mark orders ready
+  const captain = ["SUPER_ADMIN", "MANAGER", "RESTAURANT"].includes(role); // may take orders, send to billing, cancel
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageTitle
+          title="KOT"
+          sub={role === "KITCHEN"
+            ? "New orders appear here automatically. Press Mark Ready when an order is made."
+            : "Kitchen order tickets - refreshes every few seconds"}
+        />
+        {captain && (
+          <button onClick={() => setShowNew((s) => !s)} className="px-5 py-2 rounded-full bg-[#B8893C] text-white text-sm font-bold">
+            {showNew ? "Close new order" : "＋ New order"}
+          </button>
+        )}
+      </div>
+
+      {captain && showNew && <TakeOrder allowOnline={role === "SUPER_ADMIN"} onClose={() => setShowNew(false)} onChanged={boardState.reload} />}
+      <OrdersBoard
+        boardState={boardState}
+        kitchen={kitchen}
+        captain={captain}
+        showBilled={role !== "KITCHEN"}
+        billingPath={canSee(role, "billing") ? `${base}/billing` : undefined}
+      />
+>>>>>>> Stashed changes
     </div>
   );
 }

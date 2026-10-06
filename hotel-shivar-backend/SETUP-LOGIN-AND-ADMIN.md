@@ -71,3 +71,38 @@ New tables (admin_users, food_orders, menu_items, inventory_items, purchases, st
   (Super Admin, Manager or Restaurant). Only POST /api/orders/online (customer cart) is still public.
 - Kitchen department: can mark orders Ready / Preparing on the /manager page.
 - New column food_orders.kitchen_status is added automatically; old orders without a value show as Preparing.
+<<<<<<< Updated upstream
+=======
+
+## Order flow (super admin)
+1. Table / room orders are taken inside the dashboard: KOT > "New order" (Table, Room or phone/online). The public website only shows the menu and the customer cart for online orders.
+2. KOT shows tickets only: "Being prepared" and "Ready" (Mark ready / Back to preparing / Cancel). No payment here.
+3. Billing > "Unpaid bills": press Bill Paid. The order moves to "Paid bills" and is counted in Today's Revenue.
+4. The Tables page still has "Bill Paid - Free Table" for convenience.
+
+## MySQL error "Public Key Retrieval is not allowed"
+`config/MysqlLocalUrlFixer.java` (registered in `META-INF/spring.factories`) adds `allowPublicKeyRetrieval=true`
+to your `spring.datasource.url` at startup when it is a MySQL URL on localhost / 127.0.0.1. Your properties file is not changed.
+If your MySQL is on another computer, add `?allowPublicKeyRetrieval=true` (or use SSL) in the URL yourself.
+
+## Billing department + one dashboard for every department
+Every login now gets the SAME green-sidebar panel as the super admin, with only the pages of its own department.
+The super admin keeps `/super-admin`; every other department uses `/panel` (the old `/manager` address redirects there).
+After login each person is sent to their own panel automatically.
+
+| Department  | Sidebar pages                                              | Dashboard cards / poll |
+|-------------|------------------------------------------------------------|------------------------|
+| Super Admin | Dashboard, KOT, Menu, Tables, Reservation, Billing, Inventory, Purchase, Staff, Users | Occupied tables, online orders, today's revenue, pending KOT + sales poll (7 days) |
+| Manager     | Dashboard, KOT, Tables, Reservation, Billing, Inventory (view only) | Tables, online orders, today's collection, pending KOT + live-orders poll |
+| Restaurant  | Dashboard, KOT (take orders, send to billing), Tables      | Tables, online orders, ready to serve, pending KOT + live-orders poll |
+| Kitchen     | Dashboard, KOT (mark ready)                                | Pending KOT, ready, tables, online orders + live-orders poll |
+| Reception   | Dashboard, Reservation (bookings)                          | Pending / confirmed / check-ins today / total bookings + bookings-by-status poll |
+| Billing     | Dashboard, Billing (take payment, print bill, paid bills)  | Unpaid bills, unpaid amount, today's bills, today's collection + collection poll |
+
+Ready-made Billing login (created on first start, see `hotelshivar-app.properties`):
+- email `billing@hotelshivar.com`, password `Billing@12345` (change it, or set BILLING_EMAIL / BILLING_PASSWORD; leave the email empty to skip)
+- more Billing users: Super Admin > Users > Department "Billing"
+
+The backend enforces the same rules (`security/AccessPolicy.java`): the Billing department can only see the order board,
+take payment (`/paid`) and read paid bills; it cannot cancel orders, change the menu or open any other page.
+>>>>>>> Stashed changes

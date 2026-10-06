@@ -18,6 +18,8 @@ public class BookingRequest {
     @Email(message = "Email must be valid")
     private String email;
 
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be exactly 10 digits")
     private String phone;
 
     @NotNull(message = "Check-in date is required")

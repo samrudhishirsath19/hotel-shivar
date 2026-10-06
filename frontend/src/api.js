@@ -46,3 +46,33 @@ export async function apiFetch(path, options = {}) {
   }
   return data;
 }
+
+// Upload one file (multipart). Answers like apiFetch; used for room photos.
+export async function apiUpload(path, file) {
+  const token = getToken();
+  const body = new FormData();
+  body.append("file", file);
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      body,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  } catch {
+    const err = new Error("Cannot reach the server. Please check that the backend is running.");
+    err.status = 0;
+    throw err;
+  }
+  let data = null;
+  try { data = await res.json(); } catch { /* empty body */ }
+  if (!res.ok) {
+    const err = new Error((data && data.message) || "Upload failed (" + res.status + ")");
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+// Images uploaded to the backend are stored as "/uploads/..." - they live on the backend server.
+export const imgUrl = (url) => (url && url.startsWith("/uploads/") ? API_BASE + url : url);

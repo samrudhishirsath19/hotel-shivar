@@ -4,10 +4,12 @@ import com.hotelshivar.backend.dto.RoomRequest;
 import com.hotelshivar.backend.entity.Room;
 import com.hotelshivar.backend.exception.BadRequestException;
 import com.hotelshivar.backend.exception.ResourceNotFoundException;
+import com.hotelshivar.backend.repository.BookingRepository;
 import com.hotelshivar.backend.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -15,6 +17,14 @@ import java.util.List;
 public class RoomService {
 
     private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
+
+    /** Ids of rooms already booked (pending or confirmed) for any night between checkIn and checkOut. */
+    public List<Long> getOccupiedRoomIds(LocalDate checkIn, LocalDate checkOut) {
+        LocalDate in = checkIn != null ? checkIn : LocalDate.now();
+        LocalDate out = checkOut != null && checkOut.isAfter(in) ? checkOut : in.plusDays(1);
+        return bookingRepository.findOccupiedRoomIds(in, out);
+    }
 
     public List<Room> getAllRooms() {
         return roomRepository.findAll();

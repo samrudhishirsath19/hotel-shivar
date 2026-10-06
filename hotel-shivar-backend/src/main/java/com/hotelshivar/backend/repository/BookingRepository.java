@@ -27,10 +27,21 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @EntityGraph(attributePaths = "room")
     List<Booking> findByEmailIgnoreCase(String email);
 
+    /** Ids of rooms that have a live (pending / confirmed) booking overlapping the dates. */
+    @Query("""
+           select distinct b.room.id from Booking b
+           where b.status in (com.hotelshivar.backend.entity.enums.BookingStatus.PENDING,
+                              com.hotelshivar.backend.entity.enums.BookingStatus.CONFIRMED)
+           and b.checkIn < :checkOut
+           and b.checkOut > :checkIn
+           """)
+    List<Long> findOccupiedRoomIds(@Param("checkIn") LocalDate checkIn, @Param("checkOut") LocalDate checkOut);
+
     @Query("""
            select b from Booking b
            where b.room.id = :roomId
-           and b.status <> com.hotelshivar.backend.entity.enums.BookingStatus.CANCELLED
+           and b.status in (com.hotelshivar.backend.entity.enums.BookingStatus.PENDING,
+                            com.hotelshivar.backend.entity.enums.BookingStatus.CONFIRMED)
            and b.checkIn < :checkOut
            and b.checkOut > :checkIn
            """)

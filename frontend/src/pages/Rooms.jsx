@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import PageHeader from "../components/PageHeader";
 import Img from "../components/Img";
-import { apiFetch } from "../api";
+import { apiFetch, imgUrl } from "../api";
+import { groupRooms } from "../roomGroups";
 
 const u = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=70`;
 
@@ -57,23 +58,30 @@ const fallbackRooms = [
   },
 ];
 
-// backend Room -> what this page draws
-const toCard = (r) => ({
-  id: r.id,
-  name: r.name || `Room ${r.roomNumber}`,
-  price: Number(r.pricePerNight),
-  size: r.size || "",
-  guests: r.capacity || 2,
-  image: r.imageUrl || u("photo-1631049307264-da0ec9d70304"),
-  amenities: (r.amenities || "").split(",").map((a) => a.trim()).filter(Boolean),
-});
+// one room category (all rooms with the same name) -> what this page draws
+const toCard = (g) => {
+  const r = g.sample;
+  return {
+    id: g.key,
+    name: g.name,
+    price: g.minPrice,
+    size: r.size || "",
+    guests: r.capacity || 2,
+    image: imgUrl(r.imageUrl) || u("photo-1631049307264-da0ec9d70304"),
+    amenities: (r.amenities || "").split(",").map((a) => a.trim()).filter(Boolean),
+    freeNumbers: g.free.map((x) => x.roomNumber),
+    total: g.all.length,
+    fullyBooked: g.fullyBooked,
+  };
+};
 
 export default function Rooms({ onBookNow }) {
   const [rooms, setRooms] = useState(null);
 
   useEffect(() => {
-    apiFetch("/api/rooms?availableOnly=true")
-      .then((list) => setRooms((list || []).map(toCard)))
+    // rooms + which of them are booked tonight
+    Promise.all([apiFetch("/api/rooms?availableOnly=true"), apiFetch("/api/rooms/occupied").catch(() => [])])
+      .then(([list, occupied]) => setRooms(groupRooms(list, occupied).map(toCard)))
       .catch(() => setRooms(fallbackRooms));
   }, []);
 
@@ -99,6 +107,18 @@ export default function Rooms({ onBookNow }) {
               <p className="text-sm text-gray-500 mt-1">
                 {room.size ? room.size + " · " : ""}Up to {room.guests} guests
               </p>
+              {room.freeNumbers && (
+                room.fullyBooked ? (
+                  <p className="mt-3 inline-flex self-start text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-700">Fully Booked / Unavailable tonight</p>
+                ) : (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="text-gray-500">Available rooms:</span>
+                    {room.freeNumbers.map((n) => (
+                      <span key={n} className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-semibold border border-green-200">{n}</span>
+                    ))}
+                  </div>
+                )
+              )}
 
               <ul className="mt-4 space-y-1.5 text-sm text-gray-700 flex-1">
                 {room.amenities.map((a) => (
@@ -118,10 +138,11 @@ export default function Rooms({ onBookNow }) {
                 </p>
                 <button
                   type="button"
+                  disabled={room.fullyBooked}
                   onClick={() => onBookNow?.(room.name)}
-                  className="bg-[#B8893C] hover:bg-[#9E7430] text-white text-sm font-medium px-4 py-2 rounded-md"
+                  className="bg-[#B8893C] hover:bg-[#9E7430] text-white text-sm font-medium px-4 py-2 rounded-md disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed"
                 >
-                  Book Now
+                  {room.fullyBooked ? "Fully Booked" : "Book Now"}
                 </button>
               </div>
             </div>

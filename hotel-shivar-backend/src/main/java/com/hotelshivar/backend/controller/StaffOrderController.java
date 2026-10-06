@@ -28,6 +28,7 @@ public class StaffOrderController {
         return orderService.accept(id);
     }
 
+<<<<<<< Updated upstream
     /** Kitchen: the order has been made. */
     @PostMapping("/{id}/ready")
     public FoodOrder ready(@PathVariable Long id) {
@@ -41,6 +42,21 @@ public class StaffOrderController {
     }
 
     /** Bill paid: frees the table / closes the order and counts it as a sale. */
+=======
+    /** Kitchen: the order has been made -> "Ready for Serving/Shipping". */
+    @PostMapping("/{id}/ready")
+    public FoodOrder ready(@PathVariable Long id) {
+        return orderService.markReady(id);
+    }
+
+    /** Captain: order served / shipped -> hand it to Billing. */
+    @PostMapping("/{id}/send-to-billing")
+    public FoodOrder sendToBilling(@PathVariable Long id) {
+        return orderService.sendToBilling(id);
+    }
+
+    /** Billing: bill paid. Frees the table / closes the order and counts it as a sale. */
+>>>>>>> Stashed changes
     @PostMapping("/{id}/paid")
     public FoodOrder paid(@PathVariable Long id) {
         return orderService.markPaid(id);

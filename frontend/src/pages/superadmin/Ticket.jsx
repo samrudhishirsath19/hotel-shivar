@@ -16,14 +16,38 @@ export const orderTitle = (o) =>
 export const orderKind = (o) =>
   o.orderType === "TABLE" ? "TABLE" : o.orderType === "ROOM" ? "ROOM SERVICE" : "ONLINE";
 
+<<<<<<< Updated upstream
 // Orders saved before the kitchen column existed have no value - treat them as "preparing".
 export const isReady = (o) => o.kitchenStatus === "READY";
+=======
+// Kitchen / service progress of a running order:
+//   PREPARING -> READY ("Ready to Serve") -> SENT_TO_BILLING ("Ready to Billing") -> paid in Billing.
+// Orders saved before the kitchen column existed have no value - treat them as "preparing".
+export const isReady = (o) => o.kitchenStatus === "READY";
+export const isInBilling = (o) => o.kitchenStatus === "SENT_TO_BILLING";
+export const isPreparing = (o) => !isReady(o) && !isInBilling(o);
+export const READY_LABEL = "Ready to Serve / Ship"; // heading of the whole group
+// what one ready order says: table and room orders are served, online orders are shipped
+export const readyLabel = (o) => (o.orderType === "ONLINE" ? "Ready to Ship" : "Ready to Serve");
+
+const STAGE = {
+  PREPARING: { text: () => "🍳 Preparing...", cls: "bg-orange-50 text-orange-700", border: "border-orange-300" },
+  READY: { text: (o) => "✅ " + readyLabel(o), cls: "bg-green-50 text-green-700", border: "border-green-300" },
+  SENT_TO_BILLING: { text: () => "🧾 Sent to Billing", cls: "bg-blue-50 text-blue-700", border: "border-blue-300" },
+};
+const stageOf = (o) => STAGE[isReady(o) ? "READY" : isInBilling(o) ? "SENT_TO_BILLING" : "PREPARING"];
+>>>>>>> Stashed changes
 
 // One ticket: items, total, kitchen progress and action buttons (children).
 export function Ticket({ title, sub, badge, badgeClass = "bg-orange-100 text-orange-700", order, showKitchen = true, children }) {
   const kitchen = showKitchen && order.status !== "PENDING";
+<<<<<<< Updated upstream
   const ready = isReady(order);
   const tone = !kitchen ? "border-yellow-300" : ready ? "border-green-300" : "border-orange-300";
+=======
+  const stage = stageOf(order);
+  const tone = !kitchen ? "border-yellow-300" : stage.border;
+>>>>>>> Stashed changes
   return (
     <div className={`bg-white rounded-xl border-2 p-4 ${tone}`}>
       <div className="flex justify-between items-start gap-2">
@@ -38,9 +62,13 @@ export function Ticket({ title, sub, badge, badgeClass = "bg-orange-100 text-ora
       </p>
 
       {kitchen && (
+<<<<<<< Updated upstream
         <div className={`mt-3 rounded-lg px-3 py-2 text-sm font-bold ${ready ? "bg-green-50 text-green-700" : "bg-orange-50 text-orange-700"}`}>
           {ready ? "✅ Ready - prepared" : "🍳 Preparing..."}
         </div>
+=======
+        <div className={`mt-3 rounded-lg px-3 py-2 text-sm font-bold ${stage.cls}`}>{stage.text(order)}</div>
+>>>>>>> Stashed changes
       )}
 
       <div className="mt-3 divide-y">
@@ -71,6 +99,7 @@ export function AcceptActions({ order, run }) {
   );
 }
 
+<<<<<<< Updated upstream
 // Order in the kitchen: Mark ready / Back to preparing, and Cancel. (Payment is done in Billing.)
 export function KitchenActions({ order, run }) {
   const t = orderTitle(order);
@@ -81,6 +110,30 @@ export function KitchenActions({ order, run }) {
         <button onClick={() => run(order.id, "preparing", `${t} is being prepared again`)} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">Back to Preparing</button>
       ) : (
         <button onClick={() => run(order.id, "ready", `✅ ${t} is ready`)} className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-bold">Mark Ready</button>
+=======
+// Kitchen: a new order is marked ready. Once ready it cannot go back to preparing.
+export function KitchenActions({ order, run }) {
+  const t = orderTitle(order);
+  if (!isPreparing(order)) return null;
+  return (
+    <button onClick={() => run(order.id, "ready", `✅ ${t} is ${readyLabel(order)}`)} className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-bold">
+      Mark Ready
+    </button>
+  );
+}
+
+// Captain: the order shows "Ready to Serve" only after the kitchen has marked it ready. When the meal is finished
+// the captain presses "Ready to Billing" and the order goes to Billing. Cancel while not billed.
+export function CaptainActions({ order, run }) {
+  const t = orderTitle(order);
+  if (isInBilling(order)) return null;
+  return (
+    <>
+      {isReady(order) && (
+        <button onClick={() => run(order.id, "send-to-billing", `🧾 ${t} sent to Billing`)} className="flex-1 py-2 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">
+          Ready to Billing
+        </button>
+>>>>>>> Stashed changes
       )}
       <button onClick={() => window.confirm(`Cancel ${t}?`) && run(order.id, "cancel", `${t} cancelled`)} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">Cancel</button>
     </>

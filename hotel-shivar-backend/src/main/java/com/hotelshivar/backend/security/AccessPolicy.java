@@ -16,8 +16,14 @@ public class AccessPolicy {
     private static final Set<String> FRONT_DESK = Set.of(Roles.SUPER_ADMIN, Roles.MANAGER, Roles.RECEPTION);
     private static final Set<String> ORDER_EDIT = Set.of(Roles.SUPER_ADMIN, Roles.MANAGER, Roles.RESTAURANT);
     private static final Set<String> ORDER_VIEW = Set.of(Roles.SUPER_ADMIN, Roles.MANAGER, Roles.RESTAURANT, Roles.KITCHEN);
+    /** Billing desk: super admin, manager and the billing department. */
+    private static final Set<String> BILLING_DESK = Set.of(Roles.SUPER_ADMIN, Roles.MANAGER, Roles.BILLING);
+    /** Who may look at the live order board (billing needs it to see which orders were sent to Billing). */
+    private static final Set<String> BOARD_VIEW = Set.of(Roles.SUPER_ADMIN, Roles.MANAGER, Roles.RESTAURANT,
+            Roles.KITCHEN, Roles.BILLING);
+    private static final Set<String> KITCHEN_WORK = Set.of(Roles.SUPER_ADMIN, Roles.MANAGER, Roles.KITCHEN);
     private static final Set<String> ALL_STAFF = Set.of(Roles.SUPER_ADMIN, Roles.MANAGER, Roles.RECEPTION,
-            Roles.RESTAURANT, Roles.KITCHEN);
+            Roles.RESTAURANT, Roles.KITCHEN, Roles.BILLING);
 
     /** Returns null when the URL is public, otherwise the roles that may use it. */
     public Set<String> requiredRoles(String method, String rawPath) {
@@ -46,10 +52,20 @@ public class AccessPolicy {
 
         if (under(path, "/api/bookings")) return FRONT_DESK;
         if (under(path, "/api/contact") || under(path, "/api/banquet")) return MANAGEMENT;
+<<<<<<< Updated upstream
         // kitchen staff may mark an order ready / back to preparing
         if (post && path.matches("/api/admin/orders/\\d+/(ready|preparing)")) return ORDER_VIEW;
         if (under(path, "/api/admin/orders")) return get ? ORDER_VIEW : ORDER_EDIT;
         if (under(path, "/api/admin/billing")) return MANAGEMENT;
+=======
+        // kitchen marks an order ready; the captain sends it to billing; only billing (management) takes payment
+        if (post && path.matches("/api/admin/orders/\\d+/ready")) return KITCHEN_WORK;
+        if (post && path.matches("/api/admin/orders/\\d+/paid")) return BILLING_DESK;
+        if (under(path, "/api/admin/orders")) return get ? BOARD_VIEW : ORDER_EDIT;
+        if (under(path, "/api/admin/billing")) return BILLING_DESK;
+        // the manager can see stock and purchases (changing them stays super admin only)
+        if (get && (under(path, "/api/admin/inventory") || under(path, "/api/admin/purchases"))) return MANAGEMENT;
+>>>>>>> Stashed changes
 
         // users, menu, rooms, reports, offers/gallery changes, anything else
         return SUPER;

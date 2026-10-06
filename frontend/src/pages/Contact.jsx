@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PageHeader from "../components/PageHeader";
+import { digits10 } from "../roles";
 
 const u = (id, w = 1600) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
 
@@ -8,7 +9,8 @@ const emptyForm = { name: "", email: "", phone: "", subject: "Room booking", mes
 export default function Contact() {
   const [form, setForm] = useState(emptyForm);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.name === "phone" ? digits10(e.target.value) : e.target.value });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -40,7 +42,7 @@ export default function Contact() {
             <div>
               <label htmlFor="c-phone" className="block text-sm font-medium mb-1">Mobile number</label>
               <input
-                id="c-phone" name="phone" type="tel" pattern="[0-9]{10}" title="10-digit mobile number"
+                id="c-phone" name="phone" type="tel" pattern="[0-9]{10}" title="Phone number must be exactly 10 digits" inputMode="numeric"
                 required value={form.phone} onChange={handleChange} className={inputClass}
               />
             </div>

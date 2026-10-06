@@ -35,6 +35,8 @@ public class SchemaFixer implements CommandLineRunner {
         }
         exec("ALTER TABLE rooms MODIFY COLUMN type VARCHAR(30) NOT NULL");
         exec("ALTER TABLE rooms MODIFY COLUMN image_url VARCHAR(1000) NULL");
+        // kitchen_status got a new value (SENT_TO_BILLING) - make sure it is a plain varchar
+        exec("ALTER TABLE food_orders MODIFY COLUMN kitchen_status VARCHAR(30) NULL");
     }
 
     private void exec(String sql) {

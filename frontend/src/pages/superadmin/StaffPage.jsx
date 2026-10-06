@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../../api";
+import { digits10, isPhone10, PHONE_ERROR } from "../../roles";
 import { PageTitle, Notice, Badge, inputCls } from "./ui";
 
 const blank = { name: "", jobTitle: "", phone: "", joinedOn: "", active: true };
@@ -24,6 +25,7 @@ export default function StaffPage() {
   const save = async (e) => {
     e.preventDefault();
     setError("");
+    if (form.phone && !isPhone10(form.phone)) { setError(PHONE_ERROR); return; }
     setSaving(true);
     try {
       await apiFetch(editingId ? `/api/admin/staff/${editingId}` : "/api/admin/staff", {
@@ -83,7 +85,7 @@ export default function StaffPage() {
           </div>
           <div>
             <label className="text-xs font-semibold">Phone</label>
-            <input value={form.phone} onChange={set("phone")} inputMode="tel" maxLength={20} className={inputCls} />
+            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: digits10(e.target.value) })} inputMode="numeric" placeholder="10 digits" className={inputCls} />
           </div>
           <div>
             <label className="text-xs font-semibold">Joined on</label>

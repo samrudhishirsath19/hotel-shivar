@@ -32,9 +32,16 @@ export default function MenuTab() {
     available: f.available,
   });
 
+  const sameName = (a, b) => a.trim().replace(/\s+/g, " ").toLowerCase() === b.trim().replace(/\s+/g, " ").toLowerCase();
+
   const save = async (e) => {
     e.preventDefault();
     setError("");
+    const dup = items.find((i) => i.id !== editingId && sameName(i.name, form.name));
+    if (dup) {
+      setError(`"${dup.name}" already exists in the menu. Please use a different name.`);
+      return;
+    }
     setSaving(true);
     try {
       await apiFetch(editingId ? `/api/menu/${editingId}` : "/api/menu", {
@@ -96,6 +103,9 @@ export default function MenuTab() {
           <div className="md:col-span-2">
             <label className="text-xs font-semibold">Item name</label>
             <input required value={form.name} onChange={set("name")} className={inputCls} />
+            {form.name.trim() && items.some((i) => i.id !== editingId && sameName(i.name, form.name)) && (
+              <p className="text-xs text-red-600 mt-1">This item already exists in the menu.</p>
+            )}
           </div>
           <div>
             <label className="text-xs font-semibold">Category</label>

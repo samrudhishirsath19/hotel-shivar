@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { homeFor } from "../roles";
+import { homeFor, digits10, isPhone10, PHONE_ERROR } from "../roles";
 
 const links = [
   { to: "/", label: "Home" },
@@ -33,6 +33,10 @@ export default function Navbar({ onBookNow }) {
   const submitOrder = async () => {
     if (!custName.trim() || !custPhone.trim()) {
       setOrderMsg({ ok: false, text: "Please enter your name and mobile number" });
+      return;
+    }
+    if (!isPhone10(custPhone)) {
+      setOrderMsg({ ok: false, text: PHONE_ERROR });
       return;
     }
     setPlacing(true);
@@ -130,8 +134,8 @@ export default function Navbar({ onBookNow }) {
                     />
                     <input
                       value={custPhone}
-                      onChange={(e) => setCustPhone(e.target.value)}
-                      placeholder="Mobile number"
+                      onChange={(e) => setCustPhone(digits10(e.target.value))}
+                      placeholder="10-digit mobile number"
                       inputMode="tel"
                       className="w-full mt-2 border rounded-lg px-3 py-2 text-sm"
                     />

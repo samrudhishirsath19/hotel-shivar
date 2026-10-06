@@ -107,7 +107,13 @@ public class OrderService {
             return empty(type, number);
         }
         order.setTotal(computeTotal(order));
+<<<<<<< Updated upstream
         order.setKitchenStatus(KitchenStatus.PREPARING); // new / changed items must be made
+=======
+        if (delta > 0) {
+            order.setKitchenStatus(KitchenStatus.PREPARING); // newly added items must be made
+        }
+>>>>>>> Stashed changes
         return orderRepository.save(order);
     }
 
@@ -188,6 +194,7 @@ public class OrderService {
         }
         o.setStatus(OrderStatus.ACCEPTED);
         o.setKitchenStatus(KitchenStatus.PREPARING);
+<<<<<<< Updated upstream
         return orderRepository.save(o);
     }
 
@@ -199,15 +206,45 @@ public class OrderService {
             throw new BadRequestException("Only a running order in the kitchen can be updated");
         }
         o.setKitchenStatus(status);
+=======
+>>>>>>> Stashed changes
         return orderRepository.save(o);
     }
 
-    /** Bill paid - the order now counts as a sale (for the day it was paid). */
+    /** Kitchen: the order has been made. It is now "Ready for Serving/Shipping" and cannot go back to preparing. */
+    @Transactional
+    public FoodOrder markReady(Long id) {
+        FoodOrder o = getRunning(id);
+        if (o.getKitchenStatus() == KitchenStatus.READY) {
+            throw new BadRequestException("This order is already ready for serving/shipping");
+        }
+        if (o.getKitchenStatus() == KitchenStatus.SENT_TO_BILLING) {
+            throw new BadRequestException("This order has already been sent to billing");
+        }
+        o.setKitchenStatus(KitchenStatus.READY);
+        return orderRepository.save(o);
+    }
+
+    /** Captain: the ready order was served / shipped - hand it over to Billing for payment. */
+    @Transactional
+    public FoodOrder sendToBilling(Long id) {
+        FoodOrder o = getRunning(id);
+        if (o.getKitchenStatus() == KitchenStatus.SENT_TO_BILLING) {
+            throw new BadRequestException("This order is already in billing");
+        }
+        if (o.getKitchenStatus() != KitchenStatus.READY) {
+            throw new BadRequestException("Only an order the kitchen has marked Ready can be sent to billing");
+        }
+        o.setKitchenStatus(KitchenStatus.SENT_TO_BILLING);
+        return orderRepository.save(o);
+    }
+
+    /** Billing: bill paid - the order now counts as a sale (for the day it was paid). */
     @Transactional
     public FoodOrder markPaid(Long id) {
-        FoodOrder o = get(id);
-        if (o.getStatus() != OrderStatus.OPEN && o.getStatus() != OrderStatus.ACCEPTED) {
-            throw new BadRequestException("Only a running order can be marked as paid");
+        FoodOrder o = getRunning(id);
+        if (o.getKitchenStatus() != KitchenStatus.SENT_TO_BILLING) {
+            throw new BadRequestException("The captain has not sent this order to billing yet");
         }
         o.setStatus(OrderStatus.PAID);
         o.setPaidAt(LocalDateTime.now());
@@ -229,6 +266,15 @@ public class OrderService {
     private FoodOrder get(Long id) {
         return orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+    }
+
+    /** A table / room order, or an accepted online order (one that is in the kitchen or being served). */
+    private FoodOrder getRunning(Long id) {
+        FoodOrder o = get(id);
+        if (o.getStatus() != OrderStatus.OPEN && o.getStatus() != OrderStatus.ACCEPTED) {
+            throw new BadRequestException("Only a running order can be updated");
+        }
+        return o;
     }
 
     private Optional<FoodOrder> findOpen(OrderType type, String number) {

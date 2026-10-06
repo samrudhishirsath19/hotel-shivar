@@ -69,14 +69,31 @@ function Axes({ g, labels, xAt, height }) {
 }
 
 // series = [{ name, color, values: [numbers, same length as labels] }]
+<<<<<<< Updated upstream
 export function LineChart({ labels, series, height = 260, maxHeight }) {
+=======
+// fit = fill the height of the parent (parent must have a height) instead of using the width-based height
+export function LineChart({ labels, series, height = 260, maxHeight, fit = false }) {
+>>>>>>> Stashed changes
   const all = series.flatMap((s) => s.values);
   if (labels.length === 0 || all.every((v) => !v)) return <EmptyChart />;
   const g = geometry(labels, series, height);
   const xAt = (i) => g.ml + (labels.length === 1 ? g.iw / 2 : (i * g.iw) / (labels.length - 1));
   return (
+<<<<<<< Updated upstream
     <div>
       <svg viewBox={`0 0 ${g.W} ${height}`} className="w-full h-auto" style={maxHeight ? { maxHeight } : undefined} role="img">
+=======
+    <div className={fit ? "h-full flex flex-col" : ""}>
+      <div className={fit ? "relative flex-1 min-h-0" : ""}>
+      <svg
+        viewBox={`0 0 ${g.W} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        className={fit ? "absolute inset-0 w-full h-full" : "w-full h-auto"}
+        style={!fit && maxHeight ? { maxHeight } : undefined}
+        role="img"
+      >
+>>>>>>> Stashed changes
         <Axes g={g} labels={labels} xAt={xAt} height={height} />
         {series.map((s) => (
           <g key={s.name}>
@@ -92,13 +109,14 @@ export function LineChart({ labels, series, height = 260, maxHeight }) {
           </g>
         ))}
       </svg>
+      </div>
       <Legend series={series} />
     </div>
   );
 }
 
 // grouped vertical bars
-export function BarChart({ labels, series, height = 260 }) {
+export function BarChart({ labels, series, height = 260, fit = false }) {
   const all = series.flatMap((s) => s.values);
   if (labels.length === 0 || all.every((v) => !v)) return <EmptyChart />;
   const g = geometry(labels, series, height);
@@ -106,8 +124,14 @@ export function BarChart({ labels, series, height = 260 }) {
   const barW = Math.min(28, (band * 0.8) / series.length);
   const xAt = (i) => g.ml + i * band + band / 2;
   return (
-    <div>
-      <svg viewBox={`0 0 ${g.W} ${height}`} className="w-full h-auto" role="img">
+    <div className={fit ? "h-full flex flex-col" : ""}>
+      <div className={fit ? "relative flex-1 min-h-0" : ""}>
+      <svg
+        viewBox={`0 0 ${g.W} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        className={fit ? "absolute inset-0 w-full h-full" : "w-full h-auto"}
+        role="img"
+      >
         <Axes g={g} labels={labels} xAt={xAt} height={height} />
         {labels.map((l, i) =>
           series.map((s, k) => {
@@ -121,20 +145,21 @@ export function BarChart({ labels, series, height = 260 }) {
           })
         )}
       </svg>
+      </div>
       {series.length > 1 && <Legend series={series} />}
     </div>
   );
 }
 
 // slices = [{ label, value, color }]
-export function Donut({ slices }) {
+export function Donut({ slices, compact = false }) {
   const total = slices.reduce((s, x) => s + x.value, 0);
   if (total <= 0) return <EmptyChart />;
   const r = 60, C = 2 * Math.PI * r;
   let offset = 0;
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox="0 0 160 160" className="w-44 h-44" role="img">
+      <svg viewBox="0 0 160 160" className={compact ? "w-32 h-32" : "w-44 h-44"} role="img">
         <g transform="rotate(-90 80 80)">
           {slices.map((s) => {
             const len = (s.value / total) * C;
@@ -151,7 +176,7 @@ export function Donut({ slices }) {
         <text x="80" y="76" textAnchor="middle" fontSize="10" fill="#6b7280">Total</text>
         <text x="80" y="94" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#1F3B2D">{inr(total)}</text>
       </svg>
-      <div className="mt-2 space-y-1 text-xs text-gray-600">
+      <div className={`${compact ? "mt-1" : "mt-2"} space-y-1 text-xs text-gray-600`}>
         {slices.map((s) => (
           <div key={s.label} className="flex items-center gap-2">
             <span className="inline-block w-3 h-3 rounded-sm" style={{ background: s.color }} />
@@ -180,6 +205,40 @@ export function HBar({ rows, color = COLORS.food, empty = "No sales in this peri
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Poll-style chart: every option is a full-width bar filled to its share of the total,
+// with the percentage and value shown like poll results. The largest option is highlighted.
+// rows = [{ label, value, color?, display? }]  (display = text shown instead of rupees)
+export function PollChart({ rows, color = COLORS.food, empty = "No data yet", money = true }) {
+  const total = rows.reduce((s, r) => s + (Number(r.value) || 0), 0);
+  if (rows.length === 0 || total <= 0) return <EmptyChart text={empty} />;
+  const top = Math.max(...rows.map((r) => Number(r.value) || 0));
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => {
+        const v = Number(r.value) || 0;
+        const pct = Math.round((v / total) * 100);
+        const lead = v === top && v > 0;
+        const c = r.color || color;
+        return (
+          <div key={r.label} className={`relative overflow-hidden rounded-lg border ${lead ? "border-gray-400" : "border-gray-200"}`} title={`${r.label}: ${pct}%`}>
+            <div className="absolute inset-y-0 left-0 transition-all duration-500" style={{ width: `${pct}%`, background: c, opacity: lead ? 0.28 : 0.16 }} />
+            <div className="relative flex items-center justify-between gap-2 px-3 py-1.5">
+              <div className="min-w-0">
+                <p className={`text-sm leading-snug break-words ${lead ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
+                  {lead && <span className="mr-1">★</span>}{r.label}
+                </p>
+                <p className="text-[11px] text-gray-500">{r.display ?? (money ? inr(v) : v)}</p>
+              </div>
+              <b className="shrink-0 text-sm text-gray-900">{pct}%</b>
+            </div>
+          </div>
+        );
+      })}
+      <p className="text-[11px] text-gray-400 text-right">Total: {money ? inr(total) : total}</p>
     </div>
   );
 }

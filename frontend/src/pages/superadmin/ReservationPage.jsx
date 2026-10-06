@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { PageTitle } from "./ui";
 import { Toast } from "./Ticket";
 import RoomsTab from "../admin/RoomsTab";
+import BookingModal from "../../components/BookingModal";
 
 const STATUS_STYLE = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -12,11 +13,14 @@ const STATUS_STYLE = {
   CANCELLED: "bg-gray-200 text-gray-600",
 };
 
-function Bookings() {
+// Room bookings list (super admin, manager and reception / front desk).
+export function Bookings() {
   const { logout } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+  const [confirmed, setConfirmed] = useState(null); // booking just confirmed -> big notice
+  const [newOpen, setNewOpen] = useState(false);
   const flash = (t) => { setMsg(t); setTimeout(() => setMsg(""), 3500); };
 
   const load = useCallback(async () => {
@@ -38,8 +42,9 @@ function Bookings() {
 
   const setStatus = async (id, status) => {
     try {
-      await apiFetch(`/api/bookings/${id}/status?status=${status}`, { method: "PATCH" });
-      flash(`✅ Booking #${id} is now ${status}`);
+      const b = await apiFetch(`/api/bookings/${id}/status?status=${status}`, { method: "PATCH" });
+      if (status === "CONFIRMED") setConfirmed(b);
+      else flash(`✅ Booking #${id} is now ${status}`);
       load();
     } catch (e) {
       flash("⚠️ " + e.message);
@@ -49,6 +54,23 @@ function Bookings() {
   return (
     <div>
       <Toast msg={msg} />
+      {confirmed && (
+        <div role="status" className="mb-4 flex items-start justify-between gap-3 bg-green-50 border-2 border-green-400 text-green-900 px-5 py-4 rounded-xl">
+          <div>
+            <p className="font-bold text-lg">✅ Booking #{confirmed.id} confirmed</p>
+            <p className="text-sm mt-1">
+              {confirmed.guestName} · {confirmed.room?.name || "Room"} {confirmed.room?.roomNumber} · {confirmed.checkIn} → {confirmed.checkOut}
+              {" "}· {confirmed.numberOfGuests} guest{confirmed.numberOfGuests > 1 ? "s" : ""}
+            </p>
+            <p className="text-xs mt-1 text-green-800">Contact: {confirmed.phone} · {confirmed.email}</p>
+          </div>
+          <button onClick={() => setConfirmed(null)} aria-label="Close" className="text-xl leading-none px-2">×</button>
+        </div>
+      )}
+      <div className="mb-4 flex justify-end">
+        <button onClick={() => setNewOpen(true)} className="px-5 py-2 rounded-full bg-[#B8893C] text-white text-sm font-bold">＋ New booking</button>
+      </div>
+      <BookingModal isOpen={newOpen} onClose={() => { setNewOpen(false); load(); }} />
       {error && <p className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
       <div className="bg-white rounded-xl border overflow-x-auto">
         <table className="w-full text-sm min-w-[760px]">
@@ -83,16 +105,20 @@ function Bookings() {
 
 export default function ReservationPage() {
   const [tab, setTab] = useState("bookings");
+  const { user } = useAuth();
+  const superAdmin = user?.role === "SUPER_ADMIN"; // only the super admin edits rooms
   const btn = (id) =>
     `px-5 py-2 rounded-full text-sm font-semibold border ${tab === id ? "bg-[#1F3B2D] text-white border-[#1F3B2D]" : "bg-white text-gray-700"}`;
   return (
     <div>
-      <PageTitle title="Reservation" sub="Room bookings and the rooms guests can book" />
-      <div className="flex gap-2 mb-6">
-        <button onClick={() => setTab("bookings")} className={btn("bookings")}>Bookings</button>
-        <button onClick={() => setTab("rooms")} className={btn("rooms")}>Rooms</button>
-      </div>
-      {tab === "bookings" ? <Bookings /> : <RoomsTab />}
+      <PageTitle title="Reservation" sub={superAdmin ? "Room bookings and the rooms guests can book" : "Room bookings"} />
+      {superAdmin && (
+        <div className="flex gap-2 mb-6">
+          <button onClick={() => setTab("bookings")} className={btn("bookings")}>Bookings</button>
+          <button onClick={() => setTab("rooms")} className={btn("rooms")}>Rooms</button>
+        </div>
+      )}
+      {tab === "bookings" || !superAdmin ? <Bookings /> : <RoomsTab />}
     </div>
   );
 }

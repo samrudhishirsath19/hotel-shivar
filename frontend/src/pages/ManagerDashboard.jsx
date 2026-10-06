@@ -1,33 +1,66 @@
-import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+<<<<<<< Updated upstream
 import { apiFetch } from "../api";
 import OrderDesk from "../components/OrderDesk";
 import { roleLabel, isSuper, canSeeOrders, canEditOrders, canSeeBookings, inr } from "../roles";
+=======
+import OrderDesk from "../components/OrderDesk";
+import { roleLabel, isSuper } from "../roles";
+import useBoard from "./superadmin/useBoard";
+import OrdersBoard from "./superadmin/OrdersBoard";
+import BillingPage from "./superadmin/BillingPage";
+import StockOverview from "./superadmin/StockOverview";
+import { Bookings } from "./superadmin/ReservationPage";
+>>>>>>> Stashed changes
 
-const timeOf = (iso) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return isNaN(d) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+// What each department sees on its dashboard (the backend enforces the same rules - AccessPolicy.java).
+const TABS = {
+  orders: { label: "🍽️ Orders" },
+  kot: { label: "🔥 Kitchen KOT" },
+  billing: { label: "🧾 Billing" },
+  bookings: { label: "🛏️ Room Reservations" },
+  stock: { label: "📦 Inventory & Purchases" },
+};
+const TABS_FOR = {
+  MANAGER: ["orders", "billing", "bookings", "stock"],
+  RESTAURANT: ["orders"], // captain
+  KITCHEN: ["kot"],
+  RECEPTION: ["bookings"], // front desk: room reservations only
+  SUPER_ADMIN: ["orders", "billing", "bookings", "stock"],
 };
 
-function Lines({ order }) {
+// Captain / manager: take orders, follow them through the kitchen and send them to Billing.
+function OrdersTab({ role }) {
+  const boardState = useBoard();
+  const [deskOpen, setDeskOpen] = useState(false);
+  const manager = role === "MANAGER" || isSuper(role);
   return (
-    <div className="mt-3">
-      {order.lines.map((l) => (
-        <div key={l.menuItemId} className="flex justify-between text-sm py-0.5">
-          <span>{l.name} x {l.quantity}</span>
-          <span className="font-bold">{inr(l.unitPrice * l.quantity)}</span>
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-gray-600">
+          {role === "RESTAURANT"
+            ? "Take orders and send them to the kitchen. When the kitchen marks an order ready, serve it and send it to Billing."
+            : "Live orders - refreshes every few seconds."}
+        </p>
+        <button onClick={() => setDeskOpen((o) => !o)} className="px-5 py-2 rounded-full bg-[#B8893C] text-white text-sm font-bold">
+          {deskOpen ? "Close order desk" : "➕ Take Order (Table / Room / Online)"}
+        </button>
+      </div>
+      {deskOpen && (
+        <div className="mt-4 bg-white border rounded-2xl p-4">
+          <OrderDesk onChanged={boardState.reload} />
         </div>
-      ))}
-      <div className="border-t mt-2 pt-2 flex justify-between font-bold text-sm">
-        <span>Total</span>
-        <span className="text-[#B8893C]">{inr(order.total)}</span>
+      )}
+      <div className="mt-6">
+        <OrdersBoard boardState={boardState} captain kitchen={manager} billingPath={manager ? "/manager?tab=billing" : undefined} />
       </div>
     </div>
   );
 }
 
+<<<<<<< Updated upstream
 function KitchenRow({ order, onSet }) {
   const ready = order.kitchenStatus === "READY";
   return (
@@ -48,10 +81,23 @@ const STATUS_STYLE = {
   COMPLETED: "bg-green-100 text-green-700",
   CANCELLED: "bg-gray-200 text-gray-600",
 };
+=======
+// Kitchen: new KOTs and their status.
+function KitchenTab() {
+  const boardState = useBoard(5000);
+  return (
+    <div>
+      <p className="text-sm text-gray-600 mb-4">New orders appear here automatically. Press “Mark Ready” when an order is made - the captain will then serve / ship it.</p>
+      <OrdersBoard boardState={boardState} kitchen showBilled={false} />
+    </div>
+  );
+}
+>>>>>>> Stashed changes
 
 export default function ManagerDashboard() {
   const { user, logout } = useAuth();
   const role = user?.role;
+<<<<<<< Updated upstream
   const seeOrders = canSeeOrders(role);
   const editOrders = canEditOrders(role);
   const seeBookings = canSeeBookings(role);
@@ -120,34 +166,44 @@ export default function ManagerDashboard() {
   const online = board?.online || [];
   const pending = online.filter((o) => o.status === "PENDING");
   const accepted = online.filter((o) => o.status === "ACCEPTED");
+=======
+  const tabs = TABS_FOR[role] || [];
+  const [params, setParams] = useSearchParams();
+  const tab = tabs.includes(params.get("tab")) ? params.get("tab") : tabs[0];
+  const title = { RESTAURANT: "Captain Dashboard", KITCHEN: "Kitchen Dashboard", RECEPTION: "Front Desk" }[role] || "Manager Dashboard";
+>>>>>>> Stashed changes
 
   return (
     <div className="bg-[#FFFBF5] min-h-screen pb-16">
-      {msg && (
-        <div className="fixed top-[80px] left-1/2 -translate-x-1/2 bg-[#1F3B2D] text-white px-6 py-3 rounded-full shadow-lg font-bold z-[9999] text-sm text-center">
-          {msg}
-        </div>
-      )}
-
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="font-serif text-3xl text-[#1F3B2D]">Manager Dashboard</h1>
+            <h1 className="font-serif text-3xl text-[#1F3B2D]">{title}</h1>
             <p className="text-xs text-gray-500 mt-1">{user?.name} · {roleLabel(role)} · {user?.email}</p>
           </div>
           <div className="flex items-center gap-2">
             {isSuper(role) && <Link to="/super-admin" className="px-5 py-2 rounded-full bg-[#B8893C] text-white text-sm font-bold">Admin Dashboard</Link>}
-            <Link to="/restaurant" className="px-5 py-2 rounded-full bg-[#1F3B2D] text-white text-sm font-bold">Menu</Link>
             <button onClick={logout} className="px-5 py-2 rounded-full bg-red-100 text-red-700 text-sm font-bold">Logout</button>
           </div>
         </div>
 
-        {error && <p className="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
+        {tabs.length === 0 && <p className="mt-6 text-gray-500">Your department has no dashboard sections yet.</p>}
 
-        {!seeOrders && !seeBookings && (
-          <p className="mt-6 text-gray-500">Your department has no dashboard sections yet.</p>
+        {tabs.length > 1 && (
+          <div className="mt-6 flex flex-wrap gap-2">
+            {tabs.map((t) => (
+              <button
+                key={t}
+                onClick={() => setParams({ tab: t })}
+                className={`px-5 py-2 rounded-full text-sm font-semibold border ${tab === t ? "bg-[#1F3B2D] text-white border-[#1F3B2D]" : "bg-white text-gray-700"}`}
+              >
+                {TABS[t].label}
+              </button>
+            ))}
+          </div>
         )}
 
+<<<<<<< Updated upstream
         {seeOrders && (
           <>
             {/* TAKE ORDER (table / room / online) - staff only, not on the public website */}
@@ -304,6 +360,15 @@ export default function ManagerDashboard() {
             </div>
           </>
         )}
+=======
+        <div className="mt-6">
+          {tab === "orders" && <OrdersTab role={role} />}
+          {tab === "kot" && <KitchenTab />}
+          {tab === "billing" && <BillingPage />}
+          {tab === "bookings" && <Bookings />}
+          {tab === "stock" && <StockOverview />}
+        </div>
+>>>>>>> Stashed changes
       </div>
     </div>
   );

@@ -1,10 +1,11 @@
 // Departments = login roles. Must match the backend (Roles.java / AccessPolicy.java).
 export const DEPARTMENTS = [
   { value: "SUPER_ADMIN", label: "Super Admin", help: "Everything: menu, rooms, users, sales dashboard, orders, bookings" },
-  { value: "MANAGER", label: "Manager", help: "Orders, tables, online orders, room bookings, enquiries" },
+  { value: "MANAGER", label: "Manager", help: "Orders, billing, room bookings, inventory / purchase / stock details" },
   { value: "RECEPTION", label: "Reception (Front desk)", help: "Room bookings only" },
-  { value: "RESTAURANT", label: "Restaurant (Captain)", help: "Table, room-service and online orders" },
-  { value: "KITCHEN", label: "Kitchen", help: "View running orders only" },
+  { value: "RESTAURANT", label: "Restaurant (Captain)", help: "Take orders, send them to the kitchen, send served orders to Billing" },
+  { value: "KITCHEN", label: "Kitchen", help: "New orders (KOT) - mark them ready" },
+  { value: "BILLING", label: "Billing", help: "Billing only: take payment for orders sent to Billing, print bills, see paid bills" },
 ];
 
 export const roleLabel = (role) => DEPARTMENTS.find((d) => d.value === role)?.label || role;
@@ -14,11 +15,47 @@ export const canSeeOrders = (role) => ["SUPER_ADMIN", "MANAGER", "RESTAURANT", "
 export const canEditOrders = (role) => ["SUPER_ADMIN", "MANAGER", "RESTAURANT"].includes(role);
 export const canSeeBookings = (role) => ["SUPER_ADMIN", "MANAGER", "RECEPTION"].includes(role);
 
+// ---------------------------------------------------------------------------
+// Dashboard panel: every department gets the same green-sidebar panel as the super admin,
+// with only the sections that belong to it (the backend enforces the same rules - AccessPolicy.java).
+// ---------------------------------------------------------------------------
+const ALL_ROLES = DEPARTMENTS.map((d) => d.value);
+export const SECTIONS = [
+  { id: "dashboard", label: "Dashboard", roles: ALL_ROLES },
+  { id: "kot", label: "KOT", icon: "🔥", roles: ["SUPER_ADMIN", "MANAGER", "RESTAURANT", "KITCHEN"] },
+  { id: "menu", label: "Menu", roles: ["SUPER_ADMIN", "MANAGER", "RESTAURANT"] },
+  { id: "tables", label: "Tables", roles: ["SUPER_ADMIN", "MANAGER", "RESTAURANT"] },
+  { id: "reservation", label: "Reservation", roles: ["SUPER_ADMIN", "MANAGER", "RECEPTION"] },
+  { id: "rooms", label: "Rooms", roles: ["SUPER_ADMIN"] },
+  { id: "billing", label: "Billing", roles: ["SUPER_ADMIN", "MANAGER", "BILLING"] },
+  { id: "inventory", label: "Inventory", roles: ["SUPER_ADMIN"] },
+  { id: "stock", label: "Inventory", roles: ["MANAGER"] }, // view-only stock and purchases
+  { id: "purchase", label: "Purchase", roles: ["SUPER_ADMIN"] },
+  { id: "staff", label: "Staff", roles: ["SUPER_ADMIN"] },
+  { id: "users", label: "Users", roles: ["SUPER_ADMIN"] },
+  // reachable by address / link only (not in the sidebar)
+  { id: "sales", label: "Sales report", roles: ["SUPER_ADMIN"], hidden: true },
+];
+export const canSee = (role, id) => !!SECTIONS.find((s) => s.id === id)?.roles.includes(role);
+
+// Super admin keeps /super-admin; every other department uses /panel
+export const panelBase = (role) => (role === "SUPER_ADMIN" ? "/super-admin" : "/panel");
+export const panelName = (role) =>
+  ({ SUPER_ADMIN: "Super Admin", MANAGER: "Manager", RECEPTION: "Reception", RESTAURANT: "Restaurant", KITCHEN: "Kitchen", BILLING: "Billing" }[role] || "Staff") + " Panel";
+
 // Where each person lands after login
-export const homeFor = (role) => (role === "SUPER_ADMIN" ? "/super-admin" : "/manager");
+export const homeFor = (role) => panelBase(role);
 
 // Can this role open this page? (used to decide if we can return them to the page they asked for)
-export const canOpen = (role, path) =>
-  path.startsWith("/admin") || path.startsWith("/super-admin") ? role === "SUPER_ADMIN" : true;
+export const canOpen = (role, path) => {
+  if (path.startsWith("/admin") || path.startsWith("/super-admin")) return role === "SUPER_ADMIN";
+  if (path.startsWith("/panel")) return role !== "SUPER_ADMIN";
+  return true;
+};
 
 export const inr = (n) => "₹" + Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+
+// Phone numbers: exactly 10 digits. digits10 keeps only digits (max 10) while typing.
+export const digits10 = (v) => String(v || "").replace(/\D/g, "").slice(0, 10);
+export const isPhone10 = (v) => /^\d{10}$/.test(String(v || ""));
+export const PHONE_ERROR = "Phone number must be exactly 10 digits.";
