@@ -23,7 +23,6 @@ public class OnlineOrderRequest {
     @Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be exactly 10 digits")
     private String customerPhone;
 
-<<<<<<< HEAD
     @NotBlank(message = "Delivery address is required")
     @Size(min = 10, max = 500, message = "Please enter the full delivery address (house / street / area)")
     private String deliveryAddress;
@@ -34,8 +33,6 @@ public class OnlineOrderRequest {
     /** Optional when placing: CASH_ON_DELIVERY, or the online method the customer will pay with next. */
     private com.hotelshivar.backend.entity.enums.PaymentMethod paymentMethod;
 
-=======
->>>>>>> origin/sakshi
     @NotEmpty(message = "Cart is empty")
     @Valid
     private List<Item> items;

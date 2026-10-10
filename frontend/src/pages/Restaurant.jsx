@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
-<<<<<<< HEAD
 import { apiFetch, imgUrl } from "../api";
-=======
-import { apiFetch } from "../api";
->>>>>>> origin/sakshi
 
 // Public menu for customers: browse and order online through the cart.
 // (Table / room orders are taken by staff inside the dashboard.)
@@ -70,11 +66,7 @@ export default function Restaurant() {
             return (
               <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border flex flex-col">
                 {item.imageUrl ? (
-<<<<<<< HEAD
                   <img src={imgUrl(item.imageUrl)} loading="lazy" className="w-full h-40 object-cover" alt={item.name} />
-=======
-                  <img src={item.imageUrl} loading="lazy" className="w-full h-40 object-cover" alt={item.name} />
->>>>>>> origin/sakshi
                 ) : (
                   <div className="w-full h-40 bg-gray-100 flex items-center justify-center text-3xl">🍽️</div>
                 )}

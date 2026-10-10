@@ -1,5 +1,4 @@
 import react from '@vitejs/plugin-react'
-<<<<<<< HEAD
 import { defineConfig, loadEnv } from 'vite'
 
 // https://vite.dev/config/
@@ -17,11 +16,4 @@ export default defineConfig(({ mode }) => {
       },
     },
   }
-=======
-import { defineConfig } from 'vite'
-
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
->>>>>>> origin/sakshi
 })

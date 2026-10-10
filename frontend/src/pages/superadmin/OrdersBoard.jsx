@@ -6,18 +6,11 @@ import {
 } from "./Ticket";
 
 // The live KOT board, shared by the super admin, manager, captain and kitchen screens.
-<<<<<<< HEAD
 //   perms = { ready, sendToBilling, cancel, accept } - what this user may do (Module Access permissions)
 //   billingPath - where the "go to billing" link points (omit to hide it)
 export default function OrdersBoard({ boardState, perms = {}, billingPath, showBilled = true }) {
   const kitchen = !!perms.ready;
   const captain = !!(perms.sendToBilling || perms.cancel);
-=======
-//   kitchen  - may mark new orders Ready
-//   captain  - may accept online orders, send ready orders to Billing and cancel
-//   billingPath - where the "go to billing" link points (omit to hide it)
-export default function OrdersBoard({ boardState, kitchen = false, captain = false, billingPath, showBilled = true }) {
->>>>>>> origin/sakshi
   const { board, error, msg, run } = boardState;
   const [newCount, setNewCount] = useState(0);
   const seen = useRef(null);
@@ -47,21 +40,13 @@ export default function OrdersBoard({ boardState, kitchen = false, captain = fal
   const sub = (o) => (o.orderType === "ONLINE" ? `${o.customerName} · ${o.customerPhone}` : `KOT #${o.id}`);
   const card = (o) => {
     const kitchenBtn = kitchen && isPreparing(o);
-<<<<<<< HEAD
     const captainBtn = captain && !isInBilling(o) && (perms.cancel || isReady(o));
-=======
-    const captainBtn = captain && !isInBilling(o);
->>>>>>> origin/sakshi
     return (
       <Ticket key={o.id} title={orderTitle(o)} sub={sub(o)} badge={orderKind(o)} order={o}>
         {(kitchenBtn || captainBtn) && (
           <>
             {kitchenBtn && <KitchenActions order={o} run={run} />}
-<<<<<<< HEAD
             {captainBtn && <CaptainActions order={o} run={run} sendToBilling={!!perms.sendToBilling} cancel={!!perms.cancel} />}
-=======
-            {captainBtn && <CaptainActions order={o} run={run} />}
->>>>>>> origin/sakshi
           </>
         )}
       </Ticket>
@@ -81,22 +66,14 @@ export default function OrdersBoard({ boardState, kitchen = false, captain = fal
         </div>
       )}
 
-<<<<<<< HEAD
       {(perms.accept || perms.cancel) && waiting.length > 0 && (
-=======
-      {captain && waiting.length > 0 && (
->>>>>>> origin/sakshi
         <>
           <h2 className="mb-3 font-bold text-gray-900">New online orders - waiting to be accepted ({waiting.length})</h2>
           <div className={grid + " mb-8"}>
             {waiting.map((o) => (
               <Ticket key={o.id} title={orderTitle(o)} sub={`${o.customerName} · ${o.customerPhone}`} badge="NEW"
                 badgeClass="bg-yellow-100 text-yellow-800" order={o}>
-<<<<<<< HEAD
                 <AcceptActions order={o} run={run} accept={!!perms.accept} cancel={!!perms.cancel} />
-=======
-                <AcceptActions order={o} run={run} />
->>>>>>> origin/sakshi
               </Ticket>
             ))}
           </div>
@@ -109,11 +86,7 @@ export default function OrdersBoard({ boardState, kitchen = false, captain = fal
 
       <h2 className="mb-1 font-bold text-green-700">✅ {READY_LABEL} ({ready.length})</h2>
       <p className="text-xs text-gray-500 mb-3">
-<<<<<<< HEAD
         {perms.sendToBilling ? "Serve these. When the meal is finished, press “Ready to Billing” - the order then goes to Billing." : "Made by the kitchen - waiting for the captain to serve / ship."}
-=======
-        {captain ? "Serve these. When the meal is finished, press “Ready to Billing” - the order then goes to Billing." : "Made by the kitchen - waiting for the captain to serve / ship."}
->>>>>>> origin/sakshi
       </p>
       {board && ready.length === 0 && <p className="text-sm text-gray-400 mb-6">No orders waiting to be served.</p>}
       <div className={grid + " mb-8"}>{ready.map(card)}</div>

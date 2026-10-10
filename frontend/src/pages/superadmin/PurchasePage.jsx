@@ -1,22 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../../api";
-<<<<<<< HEAD
 import { useAuth } from "../../context/AuthContext";
 import { inr, can } from "../../roles";
-=======
-import { inr } from "../../roles";
->>>>>>> origin/sakshi
 import { ymd, daysAgo } from "../../dates";
 import { PageTitle, Notice, inputCls } from "./ui";
 
 const blank = () => ({ inventoryItemId: "", supplier: "", quantity: "", unitCost: "", purchasedOn: ymd(new Date()), note: "" });
 
 export default function PurchasePage() {
-<<<<<<< HEAD
   const { user } = useAuth();
   const manage = can(user?.role, "PURCHASE_CREATE"); // without it the page is view-only
-=======
->>>>>>> origin/sakshi
   const [items, setItems] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [form, setForm] = useState(blank);
@@ -85,20 +78,12 @@ export default function PurchasePage() {
     <div>
       <PageTitle title="Purchase" sub="Record stock bought from suppliers. It is added to Inventory automatically." />
 
-<<<<<<< HEAD
       {manage && (items.length === 0 ? (
-=======
-      {items.length === 0 ? (
->>>>>>> origin/sakshi
         <p className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm px-4 py-3 rounded-lg">
           Add your items in the Inventory page first, then record purchases here.
         </p>
       ) : (
-<<<<<<< HEAD
       <form onSubmit={save} className="bg-white border rounded-xl p-5 shadow-sm">
-=======
-        <form onSubmit={save} className="bg-white border rounded-xl p-5 shadow-sm">
->>>>>>> origin/sakshi
           <h3 className="font-bold text-gray-900">New purchase</h3>
           <Notice error={error} ok={ok} />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-3">
@@ -135,11 +120,7 @@ export default function PurchasePage() {
             {saving ? "Saving..." : "Save purchase"}
           </button>
         </form>
-<<<<<<< HEAD
       ))}
-=======
-      )}
->>>>>>> origin/sakshi
 
       <div className="mt-8 flex flex-wrap items-end justify-between gap-3">
         <h3 className="font-bold text-gray-900">Purchases · spent {inr(spent)}</h3>
@@ -151,17 +132,10 @@ export default function PurchasePage() {
       <div className="mt-3 bg-white rounded-xl border overflow-x-auto">
         <table className="w-full text-sm min-w-[680px]">
           <thead className="text-left text-xs text-gray-500 border-b">
-<<<<<<< HEAD
             <tr><th className="p-3">Date</th><th className="p-3">Item</th><th className="p-3">Supplier</th><th className="p-3">Quantity</th><th className="p-3">Cost / unit</th><th className="p-3">Total</th>{manage && <th className="p-3"></th>}</tr>
           </thead>
           <tbody>
             {purchases.length === 0 && <tr><td colSpan={manage ? 7 : 6} className="p-6 text-center text-gray-400">No purchases in this period</td></tr>}
-=======
-            <tr><th className="p-3">Date</th><th className="p-3">Item</th><th className="p-3">Supplier</th><th className="p-3">Quantity</th><th className="p-3">Cost / unit</th><th className="p-3">Total</th><th className="p-3"></th></tr>
-          </thead>
-          <tbody>
-            {purchases.length === 0 && <tr><td colSpan="7" className="p-6 text-center text-gray-400">No purchases in this period</td></tr>}
->>>>>>> origin/sakshi
             {purchases.map((p) => (
               <tr key={p.id} className="border-b last:border-0">
                 <td className="p-3">{p.purchasedOn}</td>
@@ -170,11 +144,7 @@ export default function PurchasePage() {
                 <td className="p-3">{Number(p.quantity)} {p.unit}</td>
                 <td className="p-3">{inr(p.unitCost)}</td>
                 <td className="p-3 font-bold">{inr(p.totalCost)}</td>
-<<<<<<< HEAD
                 {manage && (<td className="p-3"><button onClick={() => remove(p)} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold">Delete</button></td>)}
-=======
-                <td className="p-3"><button onClick={() => remove(p)} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold">Delete</button></td>
->>>>>>> origin/sakshi
               </tr>
             ))}
           </tbody>

@@ -69,29 +69,13 @@ function Axes({ g, labels, xAt, height }) {
 }
 
 // series = [{ name, color, values: [numbers, same length as labels] }]
-<<<<<<< HEAD
 // fit = fill the height of the parent (parent must have a height) instead of using the width-based height
 export function LineChart({ labels, series, height = 260, maxHeight, fit = false }) {
-=======
-<<<<<<< Updated upstream
-export function LineChart({ labels, series, height = 260, maxHeight }) {
-=======
-// fit = fill the height of the parent (parent must have a height) instead of using the width-based height
-export function LineChart({ labels, series, height = 260, maxHeight, fit = false }) {
->>>>>>> Stashed changes
->>>>>>> origin/sakshi
   const all = series.flatMap((s) => s.values);
   if (labels.length === 0 || all.every((v) => !v)) return <EmptyChart />;
   const g = geometry(labels, series, height);
   const xAt = (i) => g.ml + (labels.length === 1 ? g.iw / 2 : (i * g.iw) / (labels.length - 1));
   return (
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-    <div>
-      <svg viewBox={`0 0 ${g.W} ${height}`} className="w-full h-auto" style={maxHeight ? { maxHeight } : undefined} role="img">
-=======
->>>>>>> origin/sakshi
     <div className={fit ? "h-full flex flex-col" : ""}>
       <div className={fit ? "relative flex-1 min-h-0" : ""}>
       <svg
@@ -101,10 +85,6 @@ export function LineChart({ labels, series, height = 260, maxHeight, fit = false
         style={!fit && maxHeight ? { maxHeight } : undefined}
         role="img"
       >
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> origin/sakshi
         <Axes g={g} labels={labels} xAt={xAt} height={height} />
         {series.map((s) => (
           <g key={s.name}>

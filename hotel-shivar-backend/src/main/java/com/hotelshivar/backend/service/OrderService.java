@@ -1,7 +1,6 @@
 package com.hotelshivar.backend.service;
 
 import com.hotelshivar.backend.dto.AdjustOrderRequest;
-<<<<<<< HEAD
 import com.hotelshivar.backend.dto.BillPaymentRequest;
 import com.hotelshivar.backend.dto.OnlineOrderRequest;
 import com.hotelshivar.backend.dto.OrderBoard;
@@ -18,29 +17,13 @@ import com.hotelshivar.backend.entity.enums.OrderType;
 import com.hotelshivar.backend.entity.enums.PaymentMethod;
 import com.hotelshivar.backend.entity.enums.PaymentStatus;
 import com.hotelshivar.backend.payment.DemoPaymentGateway;
-=======
-import com.hotelshivar.backend.dto.OnlineOrderRequest;
-import com.hotelshivar.backend.dto.OrderBoard;
-import com.hotelshivar.backend.entity.FoodOrder;
-import com.hotelshivar.backend.entity.MenuItem;
-import com.hotelshivar.backend.entity.OrderLine;
-import com.hotelshivar.backend.entity.enums.KitchenStatus;
-import com.hotelshivar.backend.entity.enums.OrderStatus;
-import com.hotelshivar.backend.entity.enums.OrderType;
->>>>>>> origin/sakshi
 import com.hotelshivar.backend.exception.BadRequestException;
 import com.hotelshivar.backend.exception.ResourceNotFoundException;
 import com.hotelshivar.backend.repository.FoodOrderRepository;
 import com.hotelshivar.backend.repository.MenuItemRepository;
-<<<<<<< HEAD
 import com.hotelshivar.backend.repository.RestaurantTableRepository;
 import com.hotelshivar.backend.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
-=======
-import com.hotelshivar.backend.repository.RoomRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
->>>>>>> origin/sakshi
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,7 +46,6 @@ public class OrderService {
     private final FoodOrderRepository orderRepository;
     private final MenuItemRepository menuItemRepository;
     private final RoomRepository roomRepository;
-<<<<<<< HEAD
     private final RestaurantTableRepository tableRepository;
     private final TableService tableService;
     private final PaymentService paymentService;
@@ -74,14 +56,6 @@ public class OrderService {
         return tableRepository.findAllByOrderByTableNumberAsc().stream()
                 .filter(t -> t.getStatus() != com.hotelshivar.backend.entity.enums.TableStatus.OUT_OF_SERVICE)
                 .toList();
-=======
-
-    @Value("${app.restaurant.table-count:5}")
-    private int tableCount;
-
-    public int getTableCount() {
-        return tableCount;
->>>>>>> origin/sakshi
     }
 
     // ------------------------------------------------------------------ customer side
@@ -104,11 +78,7 @@ public class OrderService {
             throw new BadRequestException("Quantity change cannot be 0");
         }
         String number = r.getNumber().trim();
-<<<<<<< HEAD
         validateTarget(type, number, delta > 0);
-=======
-        validateTarget(type, number);
->>>>>>> origin/sakshi
 
         MenuItem item = menuItemRepository.findById(r.getMenuItemId())
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with id: " + r.getMenuItemId()));
@@ -148,7 +118,6 @@ public class OrderService {
             }
             return empty(type, number);
         }
-<<<<<<< HEAD
         applyTotals(order);
         if (delta > 0) {
             order.setKitchenStatus(KitchenStatus.PREPARING); // newly added items must be made
@@ -166,22 +135,6 @@ public class OrderService {
         if (method != null && !method.isOnline() && method != PaymentMethod.CASH_ON_DELIVERY) {
             throw new BadRequestException("Choose an online payment method or cash on delivery");
         }
-=======
-        order.setTotal(computeTotal(order));
-<<<<<<< Updated upstream
-        order.setKitchenStatus(KitchenStatus.PREPARING); // new / changed items must be made
-=======
-        if (delta > 0) {
-            order.setKitchenStatus(KitchenStatus.PREPARING); // newly added items must be made
-        }
->>>>>>> Stashed changes
-        return orderRepository.save(order);
-    }
-
-    /** A customer's online order. Waits as PENDING until the manager accepts it. */
-    @Transactional
-    public FoodOrder placeOnline(OnlineOrderRequest r) {
->>>>>>> origin/sakshi
         Map<Long, Integer> wanted = new LinkedHashMap<>();
         for (OnlineOrderRequest.Item i : r.getItems()) {
             wanted.merge(i.getMenuItemId(), i.getQuantity(), Integer::sum);
@@ -191,7 +144,6 @@ public class OrderService {
                 .orderType(OrderType.ONLINE)
                 .customerName(r.getCustomerName().trim())
                 .customerPhone(r.getCustomerPhone().trim())
-<<<<<<< HEAD
                 .deliveryAddress(r.getDeliveryAddress().trim())
                 .deliveryNote(r.getDeliveryNote() == null || r.getDeliveryNote().isBlank() ? null : r.getDeliveryNote().trim())
                 .trackingCode(newTrackingCode())
@@ -199,9 +151,6 @@ public class OrderService {
                 .onlineStatus(OnlineOrderStatus.PLACED)
                 .paymentStatus(PaymentStatus.PENDING)
                 .paymentMethod(method)
-=======
-                .status(OrderStatus.PENDING)
->>>>>>> origin/sakshi
                 .build();
 
         for (Map.Entry<Long, Integer> e : wanted.entrySet()) {
@@ -210,11 +159,7 @@ public class OrderService {
             requireAvailable(item);
             order.getLines().add(new OrderLine(item.getId(), item.getName(), item.getPrice(), e.getValue()));
         }
-<<<<<<< HEAD
         applyTotals(order);
-=======
-        order.setTotal(computeTotal(order));
->>>>>>> origin/sakshi
         return orderRepository.save(order);
     }
 
@@ -226,12 +171,9 @@ public class OrderService {
                 Set.of(OrderStatus.OPEN, OrderStatus.PENDING, OrderStatus.ACCEPTED));
 
         Map<Integer, FoodOrder> byTable = new LinkedHashMap<>();
-<<<<<<< HEAD
         running = running.stream()
                 .filter(o -> o.getOnlineStatus() != OnlineOrderStatus.OUT_FOR_DELIVERY) // left the kitchen
                 .toList();
-=======
->>>>>>> origin/sakshi
         List<FoodOrder> rooms = new ArrayList<>();
         List<FoodOrder> online = new ArrayList<>();
         for (FoodOrder o : running) {
@@ -245,7 +187,6 @@ public class OrderService {
         }
 
         List<OrderBoard.TableSlot> tables = new ArrayList<>();
-<<<<<<< HEAD
         for (RestaurantTable t : tableRepository.findAllByOrderByTableNumberAsc()) {
             tables.add(new OrderBoard.TableSlot(t.getTableNumber(), t.getCapacity(), t.getStatus().name(),
                     byTable.remove(t.getTableNumber())));
@@ -253,12 +194,6 @@ public class OrderService {
         // a running order on a table that no longer exists stays visible
         byTable.forEach((n, o) -> tables.add(new OrderBoard.TableSlot(n, null, "REMOVED", o)));
         return new OrderBoard(tables.size(), tables, rooms, online);
-=======
-        for (int n = 1; n <= tableCount; n++) {
-            tables.add(new OrderBoard.TableSlot(n, byTable.get(n)));
-        }
-        return new OrderBoard(tableCount, tables, rooms, online);
->>>>>>> origin/sakshi
     }
 
     /** Paid bills between two dates (newest first). Default: today. */
@@ -278,7 +213,6 @@ public class OrderService {
         return bills;
     }
 
-<<<<<<< HEAD
     /** Confirm a placed online order: only after it is paid, or when it is cash on delivery. Sends it to the kitchen. */
     @Transactional
     public FoodOrder accept(Long id) {
@@ -388,33 +322,6 @@ public class OrderService {
         return new TrackResponse(o, paymentService.history(o.getId()));
     }
 
-=======
-    @Transactional
-    public FoodOrder accept(Long id) {
-        FoodOrder o = get(id);
-        if (o.getStatus() != OrderStatus.PENDING) {
-            throw new BadRequestException("Only a pending online order can be accepted");
-        }
-        o.setStatus(OrderStatus.ACCEPTED);
-        o.setKitchenStatus(KitchenStatus.PREPARING);
-<<<<<<< Updated upstream
-        return orderRepository.save(o);
-    }
-
-    /** Kitchen marks a running order as made (READY) or sends it back to PREPARING. */
-    @Transactional
-    public FoodOrder setKitchenStatus(Long id, KitchenStatus status) {
-        FoodOrder o = get(id);
-        if (o.getStatus() != OrderStatus.OPEN && o.getStatus() != OrderStatus.ACCEPTED) {
-            throw new BadRequestException("Only a running order in the kitchen can be updated");
-        }
-        o.setKitchenStatus(status);
-=======
->>>>>>> Stashed changes
-        return orderRepository.save(o);
-    }
-
->>>>>>> origin/sakshi
     /** Kitchen: the order has been made. It is now "Ready for Serving/Shipping" and cannot go back to preparing. */
     @Transactional
     public FoodOrder markReady(Long id) {
@@ -426,12 +333,9 @@ public class OrderService {
             throw new BadRequestException("This order has already been sent to billing");
         }
         o.setKitchenStatus(KitchenStatus.READY);
-<<<<<<< HEAD
         if (o.getOrderType() == OrderType.ONLINE && o.getOnlineStatus() != null) {
             o.setOnlineStatus(OnlineOrderStatus.READY);
         }
-=======
->>>>>>> origin/sakshi
         return orderRepository.save(o);
     }
 
@@ -439,12 +343,9 @@ public class OrderService {
     @Transactional
     public FoodOrder sendToBilling(Long id) {
         FoodOrder o = getRunning(id);
-<<<<<<< HEAD
         if (o.getOrderType() == OrderType.ONLINE && o.getOnlineStatus() != null) {
             throw new BadRequestException("Online orders are not billed here - mark them Out for delivery, then Delivered");
         }
-=======
->>>>>>> origin/sakshi
         if (o.getKitchenStatus() == KitchenStatus.SENT_TO_BILLING) {
             throw new BadRequestException("This order is already in billing");
         }
@@ -452,25 +353,17 @@ public class OrderService {
             throw new BadRequestException("Only an order the kitchen has marked Ready can be sent to billing");
         }
         o.setKitchenStatus(KitchenStatus.SENT_TO_BILLING);
-<<<<<<< HEAD
         applyTotals(o); // the bill uses the current GST settings
-=======
->>>>>>> origin/sakshi
         return orderRepository.save(o);
     }
 
     /** Billing: bill paid - the order now counts as a sale (for the day it was paid). */
     @Transactional
-<<<<<<< HEAD
     public FoodOrder markPaid(Long id, BillPaymentRequest payment) {
-=======
-    public FoodOrder markPaid(Long id) {
->>>>>>> origin/sakshi
         FoodOrder o = getRunning(id);
         if (o.getKitchenStatus() != KitchenStatus.SENT_TO_BILLING) {
             throw new BadRequestException("The captain has not sent this order to billing yet");
         }
-<<<<<<< HEAD
         PaymentMethod method = payment != null && payment.getMethod() != null ? payment.getMethod() : PaymentMethod.CASH;
         if (method == PaymentMethod.CASH_ON_DELIVERY) {
             throw new BadRequestException("Choose cash, UPI, card, net banking or wallet");
@@ -479,8 +372,6 @@ public class OrderService {
         if (payment != null && payment.getCustomerName() != null && !payment.getCustomerName().isBlank()) {
             o.setCustomerName(payment.getCustomerName().trim().replaceAll(" +", " "));
         }
-=======
->>>>>>> origin/sakshi
         o.setStatus(OrderStatus.PAID);
         o.setPaidAt(LocalDateTime.now());
         return orderRepository.save(o);
@@ -489,7 +380,6 @@ public class OrderService {
     @Transactional
     public FoodOrder cancel(Long id) {
         FoodOrder o = get(id);
-<<<<<<< HEAD
         requireCancellable(o);
         paymentService.refund(o, "Order cancelled - payment refunded");
         o.setStatus(OrderStatus.CANCELLED);
@@ -525,13 +415,6 @@ public class OrderService {
         if (o.getOnlineStatus() == OnlineOrderStatus.OUT_FOR_DELIVERY) {
             throw new BadRequestException("The order is out for delivery and cannot be cancelled now");
         }
-=======
-        if (o.getStatus() == OrderStatus.PAID || o.getStatus() == OrderStatus.CANCELLED) {
-            throw new BadRequestException("This order is already closed");
-        }
-        o.setStatus(OrderStatus.CANCELLED);
-        return orderRepository.save(o);
->>>>>>> origin/sakshi
     }
 
     // ------------------------------------------------------------------ helpers
@@ -565,11 +448,7 @@ public class OrderService {
         return Optional.empty();
     }
 
-<<<<<<< HEAD
     private void validateTarget(OrderType type, String number, boolean adding) {
-=======
-    private void validateTarget(OrderType type, String number) {
->>>>>>> origin/sakshi
         if (type == OrderType.TABLE) {
             int n;
             try {
@@ -577,20 +456,14 @@ public class OrderService {
             } catch (NumberFormatException e) {
                 throw new BadRequestException("Table number must be a number");
             }
-<<<<<<< HEAD
             if (adding) {
                 tableService.requireUsable(n);
-=======
-            if (n < 1 || n > tableCount) {
-                throw new BadRequestException("Table number must be between 1 and " + tableCount);
->>>>>>> origin/sakshi
             }
         } else if (roomRepository.findByRoomNumber(number).isEmpty()) {
             throw new ResourceNotFoundException("Room " + number + " not found");
         }
     }
 
-<<<<<<< HEAD
     private FoodOrder byTrackingCode(String code) {
         return orderRepository.findByTrackingCode(code == null ? "" : code.trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found. Please check your order link."));
@@ -608,23 +481,18 @@ public class OrderService {
         return s.name().replace('_', ' ').toLowerCase();
     }
 
-=======
->>>>>>> origin/sakshi
     private void requireAvailable(MenuItem item) {
         if (!Boolean.TRUE.equals(item.getAvailable())) {
             throw new BadRequestException(item.getName() + " is not available right now");
         }
     }
 
-<<<<<<< HEAD
     /** Item total (without GST) and the restaurant GST on it - computed once and stored on the order. */
     private void applyTotals(FoodOrder order) {
         order.setTotal(computeTotal(order));
         order.applyTax(GstService.calculate(order.getTotal(), gstService.foodRate()));
     }
 
-=======
->>>>>>> origin/sakshi
     private BigDecimal computeTotal(FoodOrder order) {
         BigDecimal total = BigDecimal.ZERO;
         for (OrderLine l : order.getLines()) {

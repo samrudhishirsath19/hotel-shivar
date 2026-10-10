@@ -2,10 +2,7 @@ import { useState, useEffect } from "react";
 import { apiFetch } from "../api";
 import { groupRooms } from "../roomGroups";
 import { digits10, isPhone10, PHONE_ERROR } from "../roles";
-<<<<<<< HEAD
 import { useGst, calcTax, roomRate, taxOf, inr2, pct } from "../gst";
-=======
->>>>>>> origin/sakshi
 
 const blank = { category: "", roomId: "", name: "", email: "", mobile: "", checkIn: "", checkOut: "", guests: 1 };
 
@@ -39,7 +36,6 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
 
   const groups = groupRooms(rooms, occupied);
   const group = groups.find((g) => g.key === form.category);
-<<<<<<< HEAD
   const gst = useGst();
   // price estimate: GST slab depends on the price of one room per night
   const chosen = group?.free.find((r) => String(r.id) === form.roomId);
@@ -47,8 +43,6 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
     ? Math.round((new Date(form.checkOut) - new Date(form.checkIn)) / 86400000) : 0;
   const estimate = chosen && stayNights > 0
     ? calcTax(Number(chosen.pricePerNight) * stayNights, roomRate(gst, chosen.pricePerNight)) : null;
-=======
->>>>>>> origin/sakshi
 
   // a chosen room that became unavailable for the new dates is cleared
   useEffect(() => {
@@ -196,7 +190,6 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
                 </select>
               </div>
 
-<<<<<<< HEAD
               {estimate && (
                 <div className="rounded-xl bg-[#F3F5F1] px-4 py-3 text-sm space-y-1">
                   <div className="flex justify-between"><span className="text-gray-600">Room {chosen.roomNumber}: {stayNights} night{stayNights > 1 ? "s" : ""} × {inr2(chosen.pricePerNight)}</span><span>{inr2(estimate.taxable)}</span></div>
@@ -207,8 +200,6 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
                 </div>
               )}
 
-=======
->>>>>>> origin/sakshi
               <button onClick={handleBooking} disabled={busy || (group && group.fullyBooked)} className="w-full bg-[#1F3B2D] text-white font-semibold py-3.5 rounded-xl hover:bg-black disabled:opacity-60">
                 {busy ? "Booking..." : "Book now"}
               </button>
@@ -227,7 +218,6 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
               <div className="flex justify-between"><span className="text-gray-500">Check-out</span><b>{booking.checkOut} ({nights} night{nights > 1 ? "s" : ""})</b></div>
               <div className="flex justify-between"><span className="text-gray-500">Guests</span><b>{booking.numberOfGuests}</b></div>
               <div className="flex justify-between"><span className="text-gray-500">Mobile</span><b>{booking.phone}</b></div>
-<<<<<<< HEAD
               {taxOf(booking, "roomCharges") && (
                 <>
                   <div className="flex justify-between border-t pt-1.5"><span className="text-gray-500">Room charges</span><b>{inr2(booking.roomCharges)}</b></div>
@@ -237,8 +227,6 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
                   <div className="flex justify-between text-base"><span className="text-gray-700 font-semibold">Total{booking.taxAmount > 0 ? " (incl. GST)" : ""}</span><b className="text-[#1F3B2D]">{inr2(booking.grandTotal)}</b></div>
                 </>
               )}
-=======
->>>>>>> origin/sakshi
             </div>
             <p className="text-xs text-gray-500 mt-3">Please keep your booking ID. Our front desk will call you on {booking.phone} if anything is needed.</p>
             <button onClick={close} className="mt-5 w-full bg-[#1F3B2D] text-white font-semibold py-3 rounded-xl">Done</button>

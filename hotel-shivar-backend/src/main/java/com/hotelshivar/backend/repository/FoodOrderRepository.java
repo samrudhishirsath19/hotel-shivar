@@ -4,11 +4,8 @@ import com.hotelshivar.backend.entity.FoodOrder;
 import com.hotelshivar.backend.entity.enums.OrderStatus;
 import com.hotelshivar.backend.entity.enums.OrderType;
 import org.springframework.data.jpa.repository.JpaRepository;
-<<<<<<< HEAD
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-=======
->>>>>>> origin/sakshi
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -23,7 +20,6 @@ public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
 
     List<FoodOrder> findByStatusInOrderByCreatedAtAsc(Collection<OrderStatus> statuses);
 
-<<<<<<< HEAD
     Optional<FoodOrder> findByTrackingCode(String trackingCode);
 
     @Query("""
@@ -34,7 +30,5 @@ public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
     List<FoodOrder> findOnlineSince(@Param("type") OrderType type, @Param("since") LocalDateTime since,
                                     @Param("running") Collection<OrderStatus> running);
 
-=======
->>>>>>> origin/sakshi
     List<FoodOrder> findByStatusAndPaidAtGreaterThanEqualAndPaidAtLessThan(OrderStatus status, LocalDateTime from, LocalDateTime to);
 }

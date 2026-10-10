@@ -26,7 +26,6 @@ export function Badge({ on, yes, no }) {
     </span>
   );
 }
-<<<<<<< HEAD
 
 // On/off switch (keyboard and screen-reader friendly)
 export function Switch({ on, onChange, label, disabled = false, size = "md" }) {
@@ -51,5 +50,3 @@ export function Switch({ on, onChange, label, disabled = false, size = "md" }) {
     </button>
   );
 }
-=======
->>>>>>> origin/sakshi

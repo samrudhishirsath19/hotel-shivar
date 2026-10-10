@@ -28,21 +28,10 @@ export default function useBoard(intervalMs = 8000, enabled = true) {
 
   const flash = (text) => { setMsg(text); setTimeout(() => setMsg(""), 3500); };
 
-<<<<<<< HEAD
   // run(orderId, "accept" | "ready" | "send-to-billing" | "paid" | "cancel", message shown on success, body?) -> true if it worked
   const run = async (id, action, okText, body) => {
     try {
       await apiFetch(`/api/admin/orders/${id}/${action}`, { method: "POST", ...(body ? { body: JSON.stringify(body) } : {}) });
-=======
-<<<<<<< Updated upstream
-  // run(orderId, "accept" | "ready" | "preparing" | "paid" | "cancel", message shown on success) -> true if it worked
-=======
-  // run(orderId, "accept" | "ready" | "send-to-billing" | "paid" | "cancel", message shown on success) -> true if it worked
->>>>>>> Stashed changes
-  const run = async (id, action, okText) => {
-    try {
-      await apiFetch(`/api/admin/orders/${id}/${action}`, { method: "POST" });
->>>>>>> origin/sakshi
       flash(okText);
       await load();
       return true;

@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import { useState, useEffect, useCallback, useRef } from "react";
 import { apiFetch, apiUpload, imgUrl } from "../../api";
-=======
-import { useState, useEffect, useCallback } from "react";
-import { apiFetch } from "../../api";
->>>>>>> origin/sakshi
 import { inr } from "../../roles";
 
 const blank = { name: "", category: "", type: "veg", price: "", description: "", imageUrl: "", available: true };
@@ -17,7 +12,6 @@ export default function MenuTab() {
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   const [saving, setSaving] = useState(false);
-<<<<<<< HEAD
   const formRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
@@ -40,8 +34,6 @@ export default function MenuTab() {
       setUploading(false);
     }
   };
-=======
->>>>>>> origin/sakshi
   const [filter, setFilter] = useState("");
 
   const load = useCallback(() => {
@@ -96,12 +88,8 @@ export default function MenuTab() {
       description: it.description || "", imageUrl: it.imageUrl || "", available: !!it.available,
     });
     setError("");
-<<<<<<< HEAD
     // the panel scrolls its own content area, so bring the form itself into view
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-=======
-    window.scrollTo({ top: 0, behavior: "smooth" });
->>>>>>> origin/sakshi
   };
 
   const toggle = async (it) => {
@@ -129,11 +117,7 @@ export default function MenuTab() {
 
   return (
     <div>
-<<<<<<< HEAD
       <form ref={formRef} onSubmit={save} className="bg-white border rounded-2xl p-5 shadow-sm scroll-mt-4">
-=======
-      <form onSubmit={save} className="bg-white border rounded-2xl p-5 shadow-sm">
->>>>>>> origin/sakshi
         <h3 className="font-bold text-[#1F3B2D]">{editingId ? "Edit item" : "Add a new menu item"}</h3>
         {error && <p role="alert" className="mt-3 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg">{error}</p>}
         {ok && <p className="mt-3 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-2 rounded-lg">{ok}</p>}
@@ -163,7 +147,6 @@ export default function MenuTab() {
               <option value="common">Common (water, etc.)</option>
             </select>
           </div>
-<<<<<<< HEAD
           <div className="md:col-span-4">
             <label className="text-xs font-semibold">Item image (optional)</label>
             <div className="mt-1 flex flex-col md:flex-row md:items-start gap-3">
@@ -188,11 +171,6 @@ export default function MenuTab() {
                 <input value={form.imageUrl} onChange={set("imageUrl")} placeholder="or paste a link: https://... or /images/name.jpg" className={inputCls + " !mt-0"} />
               </div>
             </div>
-=======
-          <div className="md:col-span-2">
-            <label className="text-xs font-semibold">Image link (optional)</label>
-            <input value={form.imageUrl} onChange={set("imageUrl")} placeholder="https://... or /images/name.jpg" className={inputCls} />
->>>>>>> origin/sakshi
           </div>
           <div className="flex items-end">
             <label className="flex items-center gap-2 text-sm">
@@ -206,11 +184,7 @@ export default function MenuTab() {
           </div>
         </div>
         <div className="mt-4 flex gap-2">
-<<<<<<< HEAD
           <button disabled={saving || uploading} className="px-5 py-2 rounded-full bg-[#1F3B2D] text-white text-sm font-bold disabled:opacity-60">
-=======
-          <button disabled={saving} className="px-5 py-2 rounded-full bg-[#1F3B2D] text-white text-sm font-bold disabled:opacity-60">
->>>>>>> origin/sakshi
             {saving ? "Saving..." : editingId ? "Save changes" : "Add item"}
           </button>
           {editingId && (
@@ -226,7 +200,6 @@ export default function MenuTab() {
       <div className="mt-3 bg-white rounded-2xl border overflow-x-auto">
         <table className="w-full text-sm min-w-[680px]">
           <thead className="text-left text-xs text-gray-500 border-b">
-<<<<<<< HEAD
             <tr><th className="p-3">Image</th><th className="p-3">Item</th><th className="p-3">Category</th><th className="p-3">Type</th><th className="p-3">Price</th><th className="p-3">Visible</th><th className="p-3">Actions</th></tr>
           </thead>
           <tbody>
@@ -236,14 +209,6 @@ export default function MenuTab() {
                 <td className="p-3">
                   {it.imageUrl ? <img src={imgUrl(it.imageUrl)} alt="" loading="lazy" className="h-10 w-14 object-cover rounded" /> : <span className="text-xs text-gray-400">-</span>}
                 </td>
-=======
-            <tr><th className="p-3">Item</th><th className="p-3">Category</th><th className="p-3">Type</th><th className="p-3">Price</th><th className="p-3">Visible</th><th className="p-3">Actions</th></tr>
-          </thead>
-          <tbody>
-            {shown.length === 0 && <tr><td colSpan="6" className="p-6 text-center text-gray-400">No items</td></tr>}
-            {shown.map((it) => (
-              <tr key={it.id} className="border-b last:border-0">
->>>>>>> origin/sakshi
                 <td className="p-3 font-semibold">{it.name}</td>
                 <td className="p-3">{it.category}</td>
                 <td className="p-3">{it.type}</td>

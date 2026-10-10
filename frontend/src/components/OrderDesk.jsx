@@ -1,26 +1,14 @@
 import { useState, useEffect } from "react";
-<<<<<<< HEAD
 import { apiFetch, imgUrl } from "../api";
 import { inr, digits10, isPhone10, PHONE_ERROR } from "../roles";
-=======
-import { apiFetch } from "../api";
-import { inr } from "../roles";
->>>>>>> origin/sakshi
 
 // Staff order desk: take an order for a table, a room (room service) or an online / phone customer.
 // Used inside the dashboards only - the public website has no table / room ordering.
 // target = { mode: "table" | "room", number, at } lets a page jump straight to one table or room.
-<<<<<<< HEAD
 export default function OrderDesk({ target, onChanged }) {
   const [menu, setMenu] = useState([]);
   const [menuState, setMenuState] = useState("loading"); // loading | ok | error
   const [tables, setTables] = useState([]);
-=======
-export default function OrderDesk({ target }) {
-  const [menu, setMenu] = useState([]);
-  const [menuState, setMenuState] = useState("loading"); // loading | ok | error
-  const [tableCount, setTableCount] = useState(5);
->>>>>>> origin/sakshi
   const [roomNumbers, setRoomNumbers] = useState([]);
 
   const [typeFilter, setTypeFilter] = useState("all");
@@ -32,10 +20,7 @@ export default function OrderDesk({ target }) {
   const [cart, setCart] = useState([]); // online / phone order being built
   const [custName, setCustName] = useState("");
   const [custPhone, setCustPhone] = useState("");
-<<<<<<< HEAD
   const [custAddress, setCustAddress] = useState("");
-=======
->>>>>>> origin/sakshi
   const [busy, setBusy] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [toast, setToast] = useState("");
@@ -46,11 +31,7 @@ export default function OrderDesk({ target }) {
     apiFetch("/api/menu")
       .then((d) => { setMenu(d || []); setMenuState("ok"); })
       .catch(() => setMenuState("error"));
-<<<<<<< HEAD
     apiFetch("/api/orders/config").then((c) => setTables(c.tables || [])).catch(() => {});
-=======
-    apiFetch("/api/orders/config").then((c) => setTableCount(c.tableCount || 5)).catch(() => {});
->>>>>>> origin/sakshi
     apiFetch("/api/rooms")
       .then((r) => {
         const nums = (r || []).map((x) => x.roomNumber).sort();
@@ -113,10 +94,7 @@ export default function OrderDesk({ target }) {
         body: JSON.stringify({ type: targetType, number: targetNumber, menuItemId: item.id, delta }),
       });
       setLines(order.lines || []);
-<<<<<<< HEAD
       onChanged?.();
-=======
->>>>>>> origin/sakshi
       if (delta > 0) flash(`✅ Sent to kitchen - ${mode === "table" ? "Table" : "Room"} ${targetNumber}: ${item.name} x 1`);
     } catch (e) {
       flash("⚠️ " + e.message);
@@ -130,22 +108,15 @@ export default function OrderDesk({ target }) {
 
   const placeOnline = async () => {
     if (!custName.trim() || !custPhone.trim()) { flash("⚠️ Enter the customer's name and mobile number"); return; }
-<<<<<<< HEAD
     if (!isPhone10(custPhone)) { flash("⚠️ " + PHONE_ERROR); return; }
     if (custAddress.trim().length < 10) { flash("⚠️ Enter the full delivery address"); return; }
     setPlacing(true);
     try {
       const order = await apiFetch("/api/orders/online", {
-=======
-    setPlacing(true);
-    try {
-      await apiFetch("/api/orders/online", {
->>>>>>> origin/sakshi
         method: "POST",
         body: JSON.stringify({
           customerName: custName.trim(),
           customerPhone: custPhone.trim(),
-<<<<<<< HEAD
           deliveryAddress: custAddress.trim(),
           paymentMethod: "CASH_ON_DELIVERY",
           items: cart.map((c) => ({ menuItemId: c.id, quantity: c.qty })),
@@ -156,13 +127,6 @@ export default function OrderDesk({ target }) {
       setCart([]); setCustName(""); setCustPhone(""); setCustAddress("");
       flash(`✅ Online order #${order.id} sent to the kitchen`);
       onChanged?.();
-=======
-          items: cart.map((c) => ({ menuItemId: c.id, quantity: c.qty })),
-        }),
-      });
-      setCart([]); setCustName(""); setCustPhone("");
-      flash("✅ Online order created - accept it in KOT");
->>>>>>> origin/sakshi
     } catch (e) {
       flash("⚠️ " + e.message);
     } finally {
@@ -192,13 +156,8 @@ export default function OrderDesk({ target }) {
           {mode === "table" && (
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span className="text-[11px] font-bold text-gray-500">Table:</span>
-<<<<<<< HEAD
               {tables.map(({ tableNumber: n, capacity }) => (
                 <button key={n} onClick={() => setSelectedTable(n)} title={`${capacity} seats`} className={`w-8 h-8 rounded-full text-xs font-bold border ${selectedTable === n ? "bg-[#1F3B2D] text-white" : "bg-white"}`}>{n}</button>
-=======
-              {Array.from({ length: tableCount }, (_, i) => i + 1).map((n) => (
-                <button key={n} onClick={() => setSelectedTable(n)} className={`w-8 h-8 rounded-full text-xs font-bold border ${selectedTable === n ? "bg-[#1F3B2D] text-white" : "bg-white"}`}>{n}</button>
->>>>>>> origin/sakshi
               ))}
             </div>
           )}
@@ -233,12 +192,8 @@ export default function OrderDesk({ target }) {
                   ))}
                 </div>
                 <input value={custName} onChange={(e) => setCustName(e.target.value)} placeholder="Customer name" className="w-full mt-3 border rounded-lg px-3 py-2 text-sm" />
-<<<<<<< HEAD
                 <input value={custPhone} onChange={(e) => setCustPhone(digits10(e.target.value))} placeholder="10-digit mobile number" inputMode="numeric" className="w-full mt-2 border rounded-lg px-3 py-2 text-sm" />
                 <input value={custAddress} onChange={(e) => setCustAddress(e.target.value)} placeholder="Delivery address (cash on delivery)" className="w-full mt-2 border rounded-lg px-3 py-2 text-sm" />
-=======
-                <input value={custPhone} onChange={(e) => setCustPhone(e.target.value)} placeholder="Mobile number" inputMode="tel" className="w-full mt-2 border rounded-lg px-3 py-2 text-sm" />
->>>>>>> origin/sakshi
                 <div className="flex gap-2 mt-3">
                   <button onClick={placeOnline} disabled={placing} className="flex-1 py-2 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold disabled:opacity-60">{placing ? "Sending..." : "Place order"}</button>
                   <button onClick={() => setCart([])} className="px-3 py-2 bg-gray-100 rounded-lg text-xs font-bold">Clear</button>
@@ -270,11 +225,7 @@ export default function OrderDesk({ target }) {
           return (
             <div key={item.id} className="bg-white rounded-xl overflow-hidden border flex">
               {item.imageUrl ? (
-<<<<<<< HEAD
                 <img src={imgUrl(item.imageUrl)} loading="lazy" alt={item.name} className="w-24 h-auto object-cover" />
-=======
-                <img src={item.imageUrl} loading="lazy" alt={item.name} className="w-24 h-auto object-cover" />
->>>>>>> origin/sakshi
               ) : (
                 <div className="w-24 bg-gray-100 flex items-center justify-center text-2xl">🍽️</div>
               )}
