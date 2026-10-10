@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useState, useEffect, useCallback, useRef } from "react";
+=======
+import { useState, useEffect, useCallback } from "react";
+>>>>>>> origin/sakshi
 import { apiFetch, apiUpload, imgUrl } from "../../api";
 import { inr } from "../../roles";
 
@@ -16,7 +20,10 @@ export default function RoomsTab() {
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   const [saving, setSaving] = useState(false);
+<<<<<<< HEAD
   const formRef = useRef(null);
+=======
+>>>>>>> origin/sakshi
   const [uploading, setUploading] = useState(false);
 
   // pick a photo on this device -> upload it -> its address goes into the image field
@@ -87,8 +94,12 @@ export default function RoomsTab() {
       description: r.description || "", available: !!r.available,
     });
     setError("");
+<<<<<<< HEAD
     // the panel scrolls its own content area, so bring the form itself into view
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+=======
+    window.scrollTo({ top: 0, behavior: "smooth" });
+>>>>>>> origin/sakshi
   };
 
   const remove = async (r) => {
@@ -103,7 +114,11 @@ export default function RoomsTab() {
 
   return (
     <div>
+<<<<<<< HEAD
       <form ref={formRef} onSubmit={save} className="bg-white border rounded-2xl p-5 shadow-sm scroll-mt-4">
+=======
+      <form onSubmit={save} className="bg-white border rounded-2xl p-5 shadow-sm">
+>>>>>>> origin/sakshi
         <h3 className="font-bold text-[#1F3B2D]">{editingId ? "Edit room" : "Add a new room"}</h3>
         {error && <p role="alert" className="mt-3 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg">{error}</p>}
         {ok && <p className="mt-3 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-2 rounded-lg">{ok}</p>}

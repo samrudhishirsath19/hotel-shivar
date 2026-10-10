@@ -2,9 +2,12 @@ package com.hotelshivar.backend.controller;
 
 import com.hotelshivar.backend.dto.AdjustOrderRequest;
 import com.hotelshivar.backend.dto.OnlineOrderRequest;
+<<<<<<< HEAD
 import com.hotelshivar.backend.dto.PayRequest;
 import com.hotelshivar.backend.dto.TrackResponse;
 import com.hotelshivar.backend.entity.RestaurantTable;
+=======
+>>>>>>> origin/sakshi
 import com.hotelshivar.backend.entity.FoodOrder;
 import com.hotelshivar.backend.entity.OrderLine;
 import com.hotelshivar.backend.entity.enums.OrderType;
@@ -26,11 +29,17 @@ public class OrderController {
 
     private final OrderService orderService;
 
+<<<<<<< HEAD
     /** Tables staff can take orders for (number, seats, status). */
     @GetMapping("/config")
     public Map<String, Object> config() {
         List<RestaurantTable> tables = orderService.orderableTables();
         return Map.of("tableCount", tables.size(), "tables", tables);
+=======
+    @GetMapping("/config")
+    public Map<String, Integer> config() {
+        return Map.of("tableCount", orderService.getTableCount());
+>>>>>>> origin/sakshi
     }
 
     /** What is already ordered for a table (type=TABLE&number=3) or a room (type=ROOM&number=101). */
@@ -49,6 +58,7 @@ public class OrderController {
     public ResponseEntity<FoodOrder> online(@Valid @RequestBody OnlineOrderRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.placeOnline(request));
     }
+<<<<<<< HEAD
 
     /** Public: the customer pays for their order (identified by its secret tracking code). */
     @PostMapping("/online/{code}/pay")
@@ -61,4 +71,6 @@ public class OrderController {
     public TrackResponse track(@PathVariable String code) {
         return orderService.track(code);
     }
+=======
+>>>>>>> origin/sakshi
 }

@@ -1,15 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
+<<<<<<< HEAD
 import { can } from "../../roles";
 import { apiFetch } from "../../api";
 import { useAuth } from "../../context/AuthContext";
+=======
+import { apiFetch } from "../../api";
+>>>>>>> origin/sakshi
 import { PageTitle, Notice, Badge, inputCls } from "./ui";
 
 const blank = { name: "", unit: "kg", quantity: "", minLevel: "" };
 const UNITS = ["kg", "g", "litre", "ml", "piece", "packet", "dozen", "box"];
 
 export default function InventoryPage() {
+<<<<<<< HEAD
   const { user } = useAuth();
   const manage = can(user?.role, "INVENTORY_MANAGE"); // without it the page is view-only
+=======
+>>>>>>> origin/sakshi
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(blank);
   const [editingId, setEditingId] = useState(null);
@@ -79,7 +86,10 @@ export default function InventoryPage() {
         </p>
       )}
 
+<<<<<<< HEAD
       {manage && (
+=======
+>>>>>>> origin/sakshi
       <form onSubmit={save} className="bg-white border rounded-xl p-5 shadow-sm">
         <h3 className="font-bold text-gray-900">{editingId ? "Edit item" : "Add an inventory item"}</h3>
         <Notice error={error} ok={ok} />
@@ -111,26 +121,43 @@ export default function InventoryPage() {
           )}
         </div>
       </form>
+<<<<<<< HEAD
       )}
+=======
+>>>>>>> origin/sakshi
 
       <h3 className="mt-6 font-bold text-gray-900">All items ({items.length})</h3>
       <div className="mt-3 bg-white rounded-xl border overflow-x-auto">
         <table className="w-full text-sm min-w-[560px]">
           <thead className="text-left text-xs text-gray-500 border-b">
+<<<<<<< HEAD
             <tr><th className="p-3">Item</th><th className="p-3">In stock</th><th className="p-3">Low-stock level</th><th className="p-3">Status</th>{manage && <th className="p-3">Actions</th>}</tr>
           </thead>
           <tbody>
             {items.length === 0 && <tr><td colSpan={manage ? 5 : 4} className="p-6 text-center text-gray-400">No items yet</td></tr>}
+=======
+            <tr><th className="p-3">Item</th><th className="p-3">In stock</th><th className="p-3">Low-stock level</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr>
+          </thead>
+          <tbody>
+            {items.length === 0 && <tr><td colSpan="5" className="p-6 text-center text-gray-400">No items yet</td></tr>}
+>>>>>>> origin/sakshi
             {items.map((it) => (
               <tr key={it.id} className="border-b last:border-0">
                 <td className="p-3 font-semibold">{it.name}</td>
                 <td className="p-3">{Number(it.quantity)} {it.unit}</td>
                 <td className="p-3">{Number(it.minLevel)} {it.unit}</td>
                 <td className="p-3"><Badge on={Number(it.quantity) > Number(it.minLevel)} yes="OK" no="LOW" /></td>
+<<<<<<< HEAD
                 {manage && (<td className="p-3 whitespace-nowrap">
                   <button onClick={() => edit(it)} className="mr-2 px-3 py-1 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">Edit</button>
                   <button onClick={() => remove(it)} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold">Delete</button>
                 </td>)}
+=======
+                <td className="p-3 whitespace-nowrap">
+                  <button onClick={() => edit(it)} className="mr-2 px-3 py-1 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">Edit</button>
+                  <button onClick={() => remove(it)} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold">Delete</button>
+                </td>
+>>>>>>> origin/sakshi
               </tr>
             ))}
           </tbody>

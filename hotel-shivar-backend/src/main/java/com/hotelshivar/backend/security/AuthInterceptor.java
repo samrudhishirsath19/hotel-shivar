@@ -2,7 +2,10 @@ package com.hotelshivar.backend.security;
 
 import com.hotelshivar.backend.entity.AdminUser;
 import com.hotelshivar.backend.repository.AdminUserRepository;
+<<<<<<< HEAD
 import com.hotelshivar.backend.service.ModuleAccessService;
+=======
+>>>>>>> origin/sakshi
 import com.hotelshivar.backend.service.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,6 +15,10 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
 import java.util.Optional;
+<<<<<<< HEAD
+=======
+import java.util.Set;
+>>>>>>> origin/sakshi
 
 /**
  * Checks every /api request against AccessPolicy.
@@ -28,14 +35,22 @@ public class AuthInterceptor implements HandlerInterceptor {
     private final TokenService tokenService;
     private final AdminUserRepository adminUserRepository;
     private final AccessPolicy accessPolicy;
+<<<<<<< HEAD
     private final ModuleAccessService moduleAccess;
+=======
+>>>>>>> origin/sakshi
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws IOException {
 
+<<<<<<< HEAD
         AccessPolicy.Rule rule = accessPolicy.rule(request.getMethod(), request.getRequestURI(), request::getParameter);
         if (rule.open()) {
+=======
+        Set<String> allowedRoles = accessPolicy.requiredRoles(request.getMethod(), request.getRequestURI());
+        if (allowedRoles == null) {
+>>>>>>> origin/sakshi
             return true; // public URL
         }
 
@@ -53,8 +68,12 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (user.isEmpty()) {
             return reject(response, HttpServletResponse.SC_UNAUTHORIZED, "Please log in to continue");
         }
+<<<<<<< HEAD
         // department role + the permissions the super admin has granted it (Module Access page)
         if (!rule.allows(user.get().getRole(), moduleAccess::has)) {
+=======
+        if (!allowedRoles.contains(user.get().getRole())) {
+>>>>>>> origin/sakshi
             return reject(response, HttpServletResponse.SC_FORBIDDEN, "You do not have permission for this action");
         }
 

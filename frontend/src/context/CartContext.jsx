@@ -6,8 +6,11 @@ export const useCart = () => useContext(CartContext);
 
 // v2: the cart now holds real menu ids from the backend (old carts would point to items that no longer exist)
 const KEY = "shivar_cart_v2";
+<<<<<<< HEAD
 // tracking code of the customer's last online order (for the "Track my order" link)
 export const LAST_ORDER_KEY = "shivar_last_order";
+=======
+>>>>>>> origin/sakshi
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState(() => {
@@ -52,6 +55,7 @@ export function CartProvider({ children }) {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const count = cart.reduce((s, i) => s + i.qty, 0);
 
+<<<<<<< HEAD
   // Sends the cart to the backend as a delivery order (Placed, payment pending).
   // details = { customerName, customerPhone, deliveryAddress, deliveryNote, paymentMethod }
   const placeOnlineOrder = async (details) => {
@@ -59,11 +63,23 @@ export function CartProvider({ children }) {
       method: "POST",
       body: JSON.stringify({
         ...details,
+=======
+  // Sends the cart to the backend. The manager sees it as a pending online order.
+  const placeOnlineOrder = async (customerName, customerPhone) => {
+    const order = await apiFetch("/api/orders/online", {
+      method: "POST",
+      body: JSON.stringify({
+        customerName,
+        customerPhone,
+>>>>>>> origin/sakshi
         items: cart.map((c) => ({ menuItemId: c.id, quantity: c.qty })),
       }),
     });
     setCart([]);
+<<<<<<< HEAD
     try { localStorage.setItem(LAST_ORDER_KEY, order.trackingCode); } catch { /* storage blocked */ }
+=======
+>>>>>>> origin/sakshi
     return order;
   };
 

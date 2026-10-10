@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+<<<<<<< HEAD
 import { SECTIONS, canSee, panelBase, panelName } from "../../roles";
+=======
+import { SECTIONS, panelBase, panelName } from "../../roles";
+>>>>>>> origin/sakshi
 import { PanelContext } from "./panelContext";
 
 // Full-screen admin panel: green sidebar on the left, page on the right (no website navbar).
@@ -10,8 +14,12 @@ export default function SuperAdminLayout() {
   const role = user?.role;
   const base = panelBase(role);
   // only the sections that belong to this department
+<<<<<<< HEAD
   // only the sections this department may use (fixed pages + modules granted on Module Access)
   const NAV = SECTIONS.filter((s) => !s.hidden && canSee(role, s.id)).map((s) => ({
+=======
+  const NAV = SECTIONS.filter((s) => !s.hidden && s.roles.includes(role)).map((s) => ({
+>>>>>>> origin/sakshi
     to: s.id === "dashboard" ? base : `${base}/${s.id}`,
     label: s.label,
     icon: s.icon,
@@ -26,14 +34,25 @@ export default function SuperAdminLayout() {
   };
 
   const itemCls = ({ isActive }) =>
+<<<<<<< HEAD
     // items share the height of the sidebar, but never get smaller than 36px; if they do not fit,
     // the menu scrolls instead of the last items running into "View Website"
     `flex shrink-0 items-center gap-2 px-3.5 py-2 md:py-0 md:flex-1 md:min-h-[36px] md:max-h-[46px] rounded-lg text-[15px] transition-colors ${
+=======
+    `flex items-center gap-2 px-3.5 py-2 md:py-0 md:flex-1 md:min-h-[30px] md:max-h-[46px] rounded-lg text-[15px] transition-colors ${
+>>>>>>> origin/sakshi
       isActive ? "bg-[#B8893C] text-white font-medium" : "text-white/90 hover:bg-white/10"
     }`;
 
   return (
+<<<<<<< HEAD
     <PanelContext.Provider value={{ base, role }}>
+=======
+<<<<<<< Updated upstream
+=======
+    <PanelContext.Provider value={{ base, role }}>
+>>>>>>> Stashed changes
+>>>>>>> origin/sakshi
     <div className="min-h-screen bg-gray-50 md:flex md:h-screen md:overflow-hidden">
       {/* phone: top bar with a menu button */}
       <div className="md:hidden flex items-center justify-between bg-[#1F3B2D] text-white px-4 h-14">
@@ -52,7 +71,11 @@ export default function SuperAdminLayout() {
           {role !== "SUPER_ADMIN" && user?.name && <p className="text-[11px] text-white/50 truncate">{user.name}</p>}
         </div>
 
+<<<<<<< HEAD
         <nav className="mt-5 flex flex-col gap-1 md:flex-1 md:min-h-0 md:overflow-y-auto md:-mr-2 md:pr-2">
+=======
+        <nav className="mt-5 flex flex-col gap-1 md:flex-1 md:min-h-0">
+>>>>>>> origin/sakshi
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end} className={itemCls} onClick={() => setOpen(false)}>
               {n.icon && <span className="text-sm">{n.icon}</span>}
@@ -71,11 +94,23 @@ export default function SuperAdminLayout() {
         </div>
       </aside>
 
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+      <main className="flex-1 min-w-0 md:h-screen md:overflow-y-auto p-6 pt-6">
+        <Outlet />
+      </main>
+=======
+>>>>>>> origin/sakshi
       <div className="flex-1 min-w-0 flex flex-col md:h-screen">
         <main className="flex-1 min-h-0 md:overflow-y-auto p-6 pt-6">
           <Outlet />
         </main>
       </div>
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
+>>>>>>> origin/sakshi
     </div>
     </PanelContext.Provider>
   );

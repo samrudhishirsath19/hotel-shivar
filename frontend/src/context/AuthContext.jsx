@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { apiFetch, getToken, saveToken, clearToken } from "../api";
+<<<<<<< HEAD
 import { setMyPerms } from "../roles";
+=======
+>>>>>>> origin/sakshi
 
 const AuthContext = createContext(null);
 
@@ -8,6 +11,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   // true while we check a saved token with the backend on first load
   const [loading, setLoading] = useState(() => !!getToken());
+<<<<<<< HEAD
   // permissions the super admin has given this department (Module Access); re-read every minute
   const [modules, setModules] = useState([]);
 
@@ -26,6 +30,11 @@ export function AuthProvider({ children }) {
     clearToken();
     setMyPerms([]);
     setModules([]);
+=======
+
+  const logout = useCallback(() => {
+    clearToken();
+>>>>>>> origin/sakshi
     setUser(null);
   }, []);
 
@@ -34,6 +43,7 @@ export function AuthProvider({ children }) {
     if (!getToken()) return;
     let cancelled = false;
     apiFetch("/api/auth/me")
+<<<<<<< HEAD
       .then(async (me) => {
         if (cancelled) return;
         await loadModules();
@@ -50,6 +60,13 @@ export function AuthProvider({ children }) {
     const t = setInterval(loadModules, 60000);
     return () => clearInterval(t);
   }, [user, loadModules]);
+=======
+      .then((me) => { if (!cancelled) setUser({ email: me.email, name: me.name, role: me.role }); })
+      .catch(() => { if (!cancelled) clearToken(); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+>>>>>>> origin/sakshi
 
   const login = async (email, password) => {
     const data = await apiFetch("/api/auth/login", {
@@ -57,13 +74,20 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ email, password }),
     });
     saveToken(data.token);
+<<<<<<< HEAD
     await loadModules();
+=======
+>>>>>>> origin/sakshi
     setUser({ email: data.email, name: data.name, role: data.role });
     return data;
   };
 
   return (
+<<<<<<< HEAD
     <AuthContext.Provider value={{ user, loading, login, logout, modules, reloadModules: loadModules }}>
+=======
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+>>>>>>> origin/sakshi
       {children}
     </AuthContext.Provider>
   );

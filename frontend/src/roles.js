@@ -1,7 +1,11 @@
 // Departments = login roles. Must match the backend (Roles.java / AccessPolicy.java).
 export const DEPARTMENTS = [
   { value: "SUPER_ADMIN", label: "Super Admin", help: "Everything: menu, rooms, users, sales dashboard, orders, bookings" },
+<<<<<<< HEAD
   { value: "MANAGER", label: "Manager", help: "Orders (same KOT as the captain), tables, online orders, room bookings, inventory / purchase / stock details" },
+=======
+  { value: "MANAGER", label: "Manager", help: "Orders, billing, room bookings, inventory / purchase / stock details" },
+>>>>>>> origin/sakshi
   { value: "RECEPTION", label: "Reception (Front desk)", help: "Room bookings only" },
   { value: "RESTAURANT", label: "Restaurant (Captain)", help: "Take orders, send them to the kitchen, send served orders to Billing" },
   { value: "KITCHEN", label: "Kitchen", help: "New orders (KOT) - mark them ready" },
@@ -9,6 +13,7 @@ export const DEPARTMENTS = [
 ];
 
 export const roleLabel = (role) => DEPARTMENTS.find((d) => d.value === role)?.label || role;
+<<<<<<< HEAD
 // short department names (table headers, switches)
 export const deptName = (role) =>
   ({ MANAGER: "Manager", RECEPTION: "Reception", RESTAURANT: "Captain", KITCHEN: "Kitchen", BILLING: "Billing", SUPER_ADMIN: "Super Admin" }[role] || roleLabel(role));
@@ -51,6 +56,36 @@ export const canSee = (role, id) => {
   if (s.roles) return s.roles.includes(role);
   return can(role, s.perm);
 };
+=======
+
+export const isSuper = (role) => role === "SUPER_ADMIN";
+export const canSeeOrders = (role) => ["SUPER_ADMIN", "MANAGER", "RESTAURANT", "KITCHEN"].includes(role);
+export const canEditOrders = (role) => ["SUPER_ADMIN", "MANAGER", "RESTAURANT"].includes(role);
+export const canSeeBookings = (role) => ["SUPER_ADMIN", "MANAGER", "RECEPTION"].includes(role);
+
+// ---------------------------------------------------------------------------
+// Dashboard panel: every department gets the same green-sidebar panel as the super admin,
+// with only the sections that belong to it (the backend enforces the same rules - AccessPolicy.java).
+// ---------------------------------------------------------------------------
+const ALL_ROLES = DEPARTMENTS.map((d) => d.value);
+export const SECTIONS = [
+  { id: "dashboard", label: "Dashboard", roles: ALL_ROLES },
+  { id: "kot", label: "KOT", icon: "🔥", roles: ["SUPER_ADMIN", "MANAGER", "RESTAURANT", "KITCHEN"] },
+  { id: "menu", label: "Menu", roles: ["SUPER_ADMIN", "MANAGER", "RESTAURANT"] },
+  { id: "tables", label: "Tables", roles: ["SUPER_ADMIN", "MANAGER", "RESTAURANT"] },
+  { id: "reservation", label: "Reservation", roles: ["SUPER_ADMIN", "MANAGER", "RECEPTION"] },
+  { id: "rooms", label: "Rooms", roles: ["SUPER_ADMIN"] },
+  { id: "billing", label: "Billing", roles: ["SUPER_ADMIN", "MANAGER", "BILLING"] },
+  { id: "inventory", label: "Inventory", roles: ["SUPER_ADMIN"] },
+  { id: "stock", label: "Inventory", roles: ["MANAGER"] }, // view-only stock and purchases
+  { id: "purchase", label: "Purchase", roles: ["SUPER_ADMIN"] },
+  { id: "staff", label: "Staff", roles: ["SUPER_ADMIN"] },
+  { id: "users", label: "Users", roles: ["SUPER_ADMIN"] },
+  // reachable by address / link only (not in the sidebar)
+  { id: "sales", label: "Sales report", roles: ["SUPER_ADMIN"], hidden: true },
+];
+export const canSee = (role, id) => !!SECTIONS.find((s) => s.id === id)?.roles.includes(role);
+>>>>>>> origin/sakshi
 
 // Super admin keeps /super-admin; every other department uses /panel
 export const panelBase = (role) => (role === "SUPER_ADMIN" ? "/super-admin" : "/panel");

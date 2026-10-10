@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../api";
+<<<<<<< HEAD
 import { inr, digits10, isPhone10, PHONE_ERROR } from "../../roles";
 import { inputCls } from "./ui";
 
@@ -10,6 +11,16 @@ export default function TakeOrder({ onClose, onChanged = () => {}, allowOnline =
   const [mode, setMode] = useState("table");
   const [menu, setMenu] = useState([]);
   const [tables, setTables] = useState([]); // [{ tableNumber, capacity, status }]
+=======
+import { inr } from "../../roles";
+import { inputCls } from "./ui";
+
+// Staff order-taking: Table / Room / Online (phone) - the same choices the website used to show.
+export default function TakeOrder({ onClose, onChanged }) {
+  const [mode, setMode] = useState("table");
+  const [menu, setMenu] = useState([]);
+  const [tableCount, setTableCount] = useState(5);
+>>>>>>> origin/sakshi
   const [roomNumbers, setRoomNumbers] = useState([]);
   const [table, setTable] = useState(1);
   const [room, setRoom] = useState("");
@@ -17,7 +28,10 @@ export default function TakeOrder({ onClose, onChanged = () => {}, allowOnline =
   const [cart, setCart] = useState({}); // online: menuItemId -> quantity
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+<<<<<<< HEAD
   const [address, setAddress] = useState("");
+=======
+>>>>>>> origin/sakshi
   const [cat, setCat] = useState("All");
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
@@ -25,11 +39,15 @@ export default function TakeOrder({ onClose, onChanged = () => {}, allowOnline =
 
   useEffect(() => {
     apiFetch("/api/menu").then((d) => setMenu(d || [])).catch(() => setMsg({ ok: false, text: "Could not load the menu" }));
+<<<<<<< HEAD
     apiFetch("/api/orders/config").then((c) => {
       const list = c.tables || [];
       setTables(list);
       setTable((cur) => (list.some((t) => t.tableNumber === cur) ? cur : list[0]?.tableNumber ?? cur));
     }).catch(() => {});
+=======
+    apiFetch("/api/orders/config").then((c) => setTableCount(c.tableCount || 5)).catch(() => {});
+>>>>>>> origin/sakshi
     apiFetch("/api/rooms").then((r) => {
       const nums = (r || []).map((x) => x.roomNumber).sort();
       setRoomNumbers(nums);
@@ -89,8 +107,11 @@ export default function TakeOrder({ onClose, onChanged = () => {}, allowOnline =
   const placeOnline = async () => {
     if (cartItems.length === 0) { setMsg({ ok: false, text: "Add at least one item" }); return; }
     if (!name.trim() || !phone.trim()) { setMsg({ ok: false, text: "Enter the customer's name and phone" }); return; }
+<<<<<<< HEAD
     if (!isPhone10(phone)) { setMsg({ ok: false, text: PHONE_ERROR }); return; }
     if (address.trim().length < 10) { setMsg({ ok: false, text: "Enter the full delivery address" }); return; }
+=======
+>>>>>>> origin/sakshi
     setBusy(true);
     try {
       const order = await apiFetch("/api/orders/online", {
@@ -98,14 +119,21 @@ export default function TakeOrder({ onClose, onChanged = () => {}, allowOnline =
         body: JSON.stringify({
           customerName: name.trim(),
           customerPhone: phone.trim(),
+<<<<<<< HEAD
           deliveryAddress: address.trim(),
           paymentMethod: "CASH_ON_DELIVERY", // phone orders are paid on delivery
+=======
+>>>>>>> origin/sakshi
           items: cartItems.map((m) => ({ menuItemId: m.id, quantity: cart[m.id] })),
         }),
       });
       // taken by our own staff, so it goes straight to the kitchen
       await apiFetch(`/api/admin/orders/${order.id}/accept`, { method: "POST" });
+<<<<<<< HEAD
       setCart({}); setName(""); setPhone(""); setAddress("");
+=======
+      setCart({}); setName(""); setPhone("");
+>>>>>>> origin/sakshi
       setMsg({ ok: true, text: `Online order #${order.id} sent to kitchen` });
       onChanged();
     } catch (e) {
@@ -125,26 +153,40 @@ export default function TakeOrder({ onClose, onChanged = () => {}, allowOnline =
   return (
     <div className="bg-white border rounded-xl p-5 shadow-sm mb-8">
       <div className="flex items-center justify-between">
+<<<<<<< HEAD
         <h3 className="font-bold text-gray-900">{onClose ? "New order" : "Take an order"}</h3>
         {onClose && <button onClick={onClose} className="text-gray-500 text-xl leading-none px-2" aria-label="Close">×</button>}
+=======
+        <h3 className="font-bold text-gray-900">New order</h3>
+        <button onClick={onClose} className="text-gray-500 text-xl leading-none px-2" aria-label="Close">×</button>
+>>>>>>> origin/sakshi
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {modeBtn("table", "🍽️ Table")}
         {modeBtn("room", "🛎️ Room service")}
+<<<<<<< HEAD
         {allowOnline && modeBtn("online", "📞 Online / phone")}
+=======
+        {modeBtn("online", "📞 Online / phone")}
+>>>>>>> origin/sakshi
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
         {mode === "table" && (
           <>
             <span className="text-xs font-bold text-gray-500">Table:</span>
+<<<<<<< HEAD
             {tables.length === 0 && <span className="text-xs text-gray-400">No tables yet</span>}
             {tables.map((t) => (
               <button key={t.tableNumber} onClick={() => setTable(t.tableNumber)} title={`${t.capacity} seats${t.status === "RESERVED" ? " · reserved" : ""}`}
                 className={`min-w-9 h-9 px-2 rounded-full text-xs font-bold border ${table === t.tableNumber ? "bg-[#1F3B2D] text-white" : t.status === "RESERVED" ? "bg-yellow-50 border-yellow-300" : "bg-white"}`}>
                 {t.tableNumber}<span className="font-normal opacity-70"> ·{t.capacity}</span>
               </button>
+=======
+            {Array.from({ length: tableCount }, (_, i) => i + 1).map((n) => (
+              <button key={n} onClick={() => setTable(n)} className={`w-9 h-9 rounded-full text-xs font-bold border ${table === n ? "bg-[#1F3B2D] text-white" : "bg-white"}`}>{n}</button>
+>>>>>>> origin/sakshi
             ))}
           </>
         )}
@@ -160,9 +202,13 @@ export default function TakeOrder({ onClose, onChanged = () => {}, allowOnline =
         {mode === "online" && (
           <>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer name" className={inputCls + " !mt-0 max-w-[200px]"} />
+<<<<<<< HEAD
             <input value={phone} onChange={(e) => setPhone(digits10(e.target.value))} placeholder="10-digit phone" inputMode="numeric" className={inputCls + " !mt-0 max-w-[160px]"} />
             <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Delivery address" className={inputCls + " !mt-0 flex-1 min-w-[220px]"} />
             <span className="text-[11px] text-gray-500">💵 Cash on delivery</span>
+=======
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" inputMode="tel" className={inputCls + " !mt-0 max-w-[160px]"} />
+>>>>>>> origin/sakshi
           </>
         )}
       </div>

@@ -1,11 +1,16 @@
 package com.hotelshivar.backend.entity;
 
 import com.hotelshivar.backend.entity.enums.KitchenStatus;
+<<<<<<< HEAD
 import com.hotelshivar.backend.entity.enums.OnlineOrderStatus;
 import com.hotelshivar.backend.entity.enums.OrderStatus;
 import com.hotelshivar.backend.entity.enums.OrderType;
 import com.hotelshivar.backend.entity.enums.PaymentMethod;
 import com.hotelshivar.backend.entity.enums.PaymentStatus;
+=======
+import com.hotelshivar.backend.entity.enums.OrderStatus;
+import com.hotelshivar.backend.entity.enums.OrderType;
+>>>>>>> origin/sakshi
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -73,6 +78,7 @@ public class FoodOrder {
     @CollectionTable(name = "food_order_lines", joinColumns = @JoinColumn(name = "order_id"))
     @Builder.Default
     private List<OrderLine> lines = new ArrayList<>();
+<<<<<<< HEAD
 
     // ------------------------------------------------------------------ online delivery orders
 
@@ -148,4 +154,6 @@ public class FoodOrder {
         this.taxAmount = t.tax();
         this.grandTotal = t.total();
     }
+=======
+>>>>>>> origin/sakshi
 }

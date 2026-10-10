@@ -1,15 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../../api";
+<<<<<<< HEAD
 import { useAuth } from "../../context/AuthContext";
 import { digits10, isPhone10, PHONE_ERROR, can } from "../../roles";
+=======
+import { digits10, isPhone10, PHONE_ERROR } from "../../roles";
+>>>>>>> origin/sakshi
 import { PageTitle, Notice, Badge, inputCls } from "./ui";
 
 const blank = { name: "", jobTitle: "", phone: "", joinedOn: "", active: true };
 const TITLES = ["Cook", "Waiter", "Captain", "Cleaner", "Receptionist", "Security", "Cashier", "Manager"];
 
 export default function StaffPage() {
+<<<<<<< HEAD
   const { user } = useAuth();
   const manage = can(user?.role, "STAFF_MANAGE"); // without it the page is view-only
+=======
+>>>>>>> origin/sakshi
   const [staff, setStaff] = useState([]);
   const [form, setForm] = useState(blank);
   const [editingId, setEditingId] = useState(null);
@@ -73,7 +80,10 @@ export default function StaffPage() {
     <div>
       <PageTitle title="Staff" sub="Hotel employees. To give someone a login, use the Users page." />
 
+<<<<<<< HEAD
       {manage && (
+=======
+>>>>>>> origin/sakshi
       <form onSubmit={save} className="bg-white border rounded-xl p-5 shadow-sm">
         <h3 className="font-bold text-gray-900">{editingId ? "Edit staff member" : "Add a staff member"}</h3>
         <Notice error={error} ok={ok} />
@@ -109,16 +119,26 @@ export default function StaffPage() {
           )}
         </div>
       </form>
+<<<<<<< HEAD
       )}
+=======
+>>>>>>> origin/sakshi
 
       <h3 className="mt-6 font-bold text-gray-900">All staff ({staff.length})</h3>
       <div className="mt-3 bg-white rounded-xl border overflow-x-auto">
         <table className="w-full text-sm min-w-[600px]">
           <thead className="text-left text-xs text-gray-500 border-b">
+<<<<<<< HEAD
             <tr><th className="p-3">Name</th><th className="p-3">Job title</th><th className="p-3">Phone</th><th className="p-3">Joined</th><th className="p-3">Status</th>{manage && <th className="p-3">Actions</th>}</tr>
           </thead>
           <tbody>
             {staff.length === 0 && <tr><td colSpan={manage ? 6 : 5} className="p-6 text-center text-gray-400">No staff added yet</td></tr>}
+=======
+            <tr><th className="p-3">Name</th><th className="p-3">Job title</th><th className="p-3">Phone</th><th className="p-3">Joined</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr>
+          </thead>
+          <tbody>
+            {staff.length === 0 && <tr><td colSpan="6" className="p-6 text-center text-gray-400">No staff added yet</td></tr>}
+>>>>>>> origin/sakshi
             {staff.map((s) => (
               <tr key={s.id} className="border-b last:border-0">
                 <td className="p-3 font-semibold">{s.name}</td>
@@ -126,10 +146,17 @@ export default function StaffPage() {
                 <td className="p-3">{s.phone || "-"}</td>
                 <td className="p-3">{s.joinedOn || "-"}</td>
                 <td className="p-3"><Badge on={s.active} yes="WORKING" no="LEFT" /></td>
+<<<<<<< HEAD
                 {manage && (<td className="p-3 whitespace-nowrap">
                   <button onClick={() => edit(s)} className="mr-2 px-3 py-1 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">Edit</button>
                   <button onClick={() => remove(s)} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold">Delete</button>
                 </td>)}
+=======
+                <td className="p-3 whitespace-nowrap">
+                  <button onClick={() => edit(s)} className="mr-2 px-3 py-1 bg-[#1F3B2D] text-white rounded-lg text-xs font-bold">Edit</button>
+                  <button onClick={() => remove(s)} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold">Delete</button>
+                </td>
+>>>>>>> origin/sakshi
               </tr>
             ))}
           </tbody>

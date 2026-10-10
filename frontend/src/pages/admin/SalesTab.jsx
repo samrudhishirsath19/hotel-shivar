@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../api";
 import { inr } from "../../roles";
+<<<<<<< HEAD
 import { BarChart, Donut, HBar, PollChart, COLORS } from "../../components/charts";
+=======
+import { LineChart, BarChart, Donut, HBar, COLORS } from "../../components/charts";
+>>>>>>> origin/sakshi
 
 const ymd = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -27,6 +31,7 @@ export default function SalesTab() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [itemDay, setItemDay] = useState("");
+<<<<<<< HEAD
   // same chart as the dashboard: "graphs" (bar chart + donut) or "poll". Shared with the dashboard switch.
   const [view, setView] = useState(() => {
     try { return localStorage.getItem("hs_dash_view") === "poll" ? "poll" : "graphs"; } catch { return "graphs"; }
@@ -35,6 +40,8 @@ export default function SalesTab() {
     setView(v);
     try { localStorage.setItem("hs_dash_view", v); } catch { /* storage blocked */ }
   };
+=======
+>>>>>>> origin/sakshi
 
   useEffect(() => {
     if (!from || !to || from > to) return;
@@ -87,10 +94,13 @@ export default function SalesTab() {
         <button onClick={() => quick(6)} className="px-3 py-1.5 rounded-lg bg-gray-100 text-xs font-bold">Last 7 days</button>
         <button onClick={() => quick(29)} className="px-3 py-1.5 rounded-lg bg-gray-100 text-xs font-bold">Last 30 days</button>
         {loading && <span className="text-xs text-gray-400">Loading...</span>}
+<<<<<<< HEAD
         <div className="ml-auto flex rounded-full border bg-white p-0.5 text-xs font-semibold" role="group" aria-label="Chart style">
           <button onClick={() => pickView("graphs")} aria-pressed={view === "graphs"} className={`px-3 py-1 rounded-full ${view === "graphs" ? "bg-[#1F3B2D] text-white" : "text-gray-600"}`}>Graphs</button>
           <button onClick={() => pickView("poll")} aria-pressed={view === "poll"} className={`px-3 py-1 rounded-full ${view === "poll" ? "bg-[#1F3B2D] text-white" : "text-gray-600"}`}>Poll</button>
         </div>
+=======
+>>>>>>> origin/sakshi
       </div>
 
       {error && <p className="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
@@ -98,14 +108,23 @@ export default function SalesTab() {
       {report && (
         <>
           {/* TOTALS */}
+<<<<<<< HEAD
           <div className="mt-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
             {[
               ["Total sales (excl. GST)", inr(totals.total), COLORS.total],
+=======
+          <div className="mt-5 grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[
+              ["Total sales", inr(totals.total), COLORS.total],
+>>>>>>> origin/sakshi
               ["Food & drinks", inr(totals.food), COLORS.food],
               ["Rooms", inr(totals.rooms), COLORS.rooms],
               ["Paid orders", totals.orders, "#374151"],
               ["Room bookings", totals.bookings, "#374151"],
+<<<<<<< HEAD
               ["GST collected", inr(totals.gst), "#7c3aed"],
+=======
+>>>>>>> origin/sakshi
             ].map(([label, value, color]) => (
               <div key={label} className="bg-white rounded-2xl border p-4 shadow-sm">
                 <p className="text-xs text-gray-500">{label}</p>
@@ -116,6 +135,7 @@ export default function SalesTab() {
 
           {/* OVERALL */}
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-5">
+<<<<<<< HEAD
             {view === "graphs" ? (
               <>
                 {/* the same bar graph + donut as on the dashboard, for the chosen dates */}
@@ -151,6 +171,24 @@ export default function SalesTab() {
                 </Card>
               </>
             )}
+=======
+            <Card title="Day-wise total sales" sub="Food + rooms for each day (line chart)" className="lg:col-span-2">
+              <LineChart
+                labels={labels}
+                series={[
+                  { name: "Total", color: COLORS.total, values: days.map((d) => num(d.total)) },
+                  { name: "Food & drinks", color: COLORS.food, values: days.map((d) => num(d.food)) },
+                  { name: "Rooms", color: COLORS.rooms, values: days.map((d) => num(d.rooms)) },
+                ]}
+              />
+            </Card>
+            <Card title="Food vs rooms" sub="Share of sales in this period (donut chart)">
+              <Donut slices={[
+                { label: "Food & drinks", value: num(totals.food), color: COLORS.food },
+                { label: "Rooms", value: num(totals.rooms), color: COLORS.rooms },
+              ]} />
+            </Card>
+>>>>>>> origin/sakshi
           </div>
 
           {/* FOOD ITEMS */}
@@ -204,7 +242,11 @@ export default function SalesTab() {
             </table>
           </div>
           <p className="text-xs text-gray-400 mt-3">
+<<<<<<< HEAD
             Sales are shown without GST; the GST collected is shown separately (food {inr(totals.foodGst)}, rooms {inr(totals.roomGst)}). Food counts when the bill is paid (on that day). Rooms count when a booking is Confirmed or Completed (on the day it was booked).
+=======
+            Food counts when the manager presses "Bill Paid" (on that day). Rooms count when a booking is Confirmed or Completed (on the day it was booked).
+>>>>>>> origin/sakshi
           </p>
         </>
       )}

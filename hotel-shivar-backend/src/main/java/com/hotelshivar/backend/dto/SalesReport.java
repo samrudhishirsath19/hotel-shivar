@@ -13,9 +13,13 @@ public record SalesReport(LocalDate from,
                           Map<String, List<ItemRow>> itemsByDay,
                           List<RoomRow> rooms) {
 
+<<<<<<< HEAD
     /** Sales are without GST; foodGst / roomGst / gst = GST collected on them (shown separately). */
     public record Totals(BigDecimal food, BigDecimal rooms, BigDecimal total, int orders, int bookings,
                          BigDecimal foodGst, BigDecimal roomGst, BigDecimal gst) { }
+=======
+    public record Totals(BigDecimal food, BigDecimal rooms, BigDecimal total, int orders, int bookings) { }
+>>>>>>> origin/sakshi
 
     public record DayRow(LocalDate date, BigDecimal food, BigDecimal rooms, BigDecimal total, int orders, int bookings) { }
 

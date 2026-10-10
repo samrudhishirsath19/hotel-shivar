@@ -71,6 +71,11 @@ New tables (admin_users, food_orders, menu_items, inventory_items, purchases, st
   (Super Admin, Manager or Restaurant). Only POST /api/orders/online (customer cart) is still public.
 - Kitchen department: can mark orders Ready / Preparing on the /manager page.
 - New column food_orders.kitchen_status is added automatically; old orders without a value show as Preparing.
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> origin/sakshi
 
 ## Order flow (super admin)
 1. Table / room orders are taken inside the dashboard: KOT > "New order" (Table, Room or phone/online). The public website only shows the menu and the customer cart for online orders.
@@ -103,3 +108,7 @@ Ready-made Billing login (created on first start, see `hotelshivar-app.propertie
 
 The backend enforces the same rules (`security/AccessPolicy.java`): the Billing department can only see the order board,
 take payment (`/paid`) and read paid bills; it cannot cancel orders, change the menu or open any other page.
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
+>>>>>>> origin/sakshi

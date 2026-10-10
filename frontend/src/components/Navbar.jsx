@@ -1,9 +1,16 @@
 import { useState } from "react";
+<<<<<<< HEAD
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart, LAST_ORDER_KEY } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { homeFor, digits10, isPhone10, PHONE_ERROR } from "../roles";
 import { useGst, calcTax, foodRate, inr2, pct } from "../gst";
+=======
+import { Link, NavLink } from "react-router-dom";
+import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
+import { homeFor, digits10, isPhone10, PHONE_ERROR } from "../roles";
+>>>>>>> origin/sakshi
 
 const links = [
   { to: "/", label: "Home" },
@@ -21,17 +28,23 @@ export default function Navbar({ onBookNow }) {
   const [cartOpen, setCartOpen] = useState(false);
   const [custName, setCustName] = useState("");
   const [custPhone, setCustPhone] = useState("");
+<<<<<<< HEAD
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
   const [payMode, setPayMode] = useState("ONLINE"); // ONLINE | CASH_ON_DELIVERY
   const navigate = useNavigate();
   const lastOrder = (() => { try { return localStorage.getItem(LAST_ORDER_KEY); } catch { return null; } })();
+=======
+>>>>>>> origin/sakshi
   const [placing, setPlacing] = useState(false);
   const [orderMsg, setOrderMsg] = useState({ ok: true, text: "" });
   const { cart, total, count, removeFromCart, updateCartQty, clearCart, placeOnlineOrder } = useCart();
   const { user, logout } = useAuth();
+<<<<<<< HEAD
   const gst = useGst();
   const bill = calcTax(total, foodRate(gst)); // estimate; the order stores the exact GST
+=======
+>>>>>>> origin/sakshi
 
   const linkClass = ({ isActive }) =>
     `px-3 py-2 text-sm transition-colors ${
@@ -47,6 +60,7 @@ export default function Navbar({ onBookNow }) {
       setOrderMsg({ ok: false, text: PHONE_ERROR });
       return;
     }
+<<<<<<< HEAD
     if (address.trim().length < 10) {
       setOrderMsg({ ok: false, text: "Please enter the full delivery address (house / street / area)" });
       return;
@@ -65,6 +79,12 @@ export default function Navbar({ onBookNow }) {
       setCartOpen(false);
       // next: payment (or, for cash on delivery, straight to tracking)
       navigate(`/order/${order.trackingCode}`);
+=======
+    setPlacing(true);
+    try {
+      await placeOnlineOrder(custName.trim(), custPhone.trim());
+      setOrderMsg({ ok: true, text: "Order sent! The restaurant will confirm it shortly." });
+>>>>>>> origin/sakshi
     } catch (e) {
       setOrderMsg({ ok: false, text: e.message });
     } finally {
@@ -127,6 +147,7 @@ export default function Navbar({ onBookNow }) {
                 )}
 
                 {cart.length === 0 ? (
+<<<<<<< HEAD
                   <div className="text-center py-8">
                     <p className="text-sm text-gray-400">Cart is empty</p>
                     {lastOrder && (
@@ -135,6 +156,9 @@ export default function Navbar({ onBookNow }) {
                       </Link>
                     )}
                   </div>
+=======
+                  <p className="text-sm text-gray-400 text-center py-8">Cart is empty</p>
+>>>>>>> origin/sakshi
                 ) : (
                   <>
                     {cart.map((c) => (
@@ -151,6 +175,7 @@ export default function Navbar({ onBookNow }) {
                         <button onClick={() => removeFromCart(c.id)} className="text-red-500 text-[11px] font-bold px-1">✕</button>
                       </div>
                     ))}
+<<<<<<< HEAD
                     {bill.tax > 0 ? (
                       <div className="mt-3 text-sm text-[#1F3B2D]">
                         <div className="flex justify-between text-gray-600"><span>Item total</span><span>{inr2(bill.taxable)}</span></div>
@@ -162,6 +187,11 @@ export default function Navbar({ onBookNow }) {
                         <span>Total</span><span className="text-[#B8893C]">₹{total}</span>
                       </div>
                     )}
+=======
+                    <div className="flex justify-between font-bold mt-3 text-[#1F3B2D]">
+                      <span>Total</span><span className="text-[#B8893C]">₹{total}</span>
+                    </div>
+>>>>>>> origin/sakshi
 
                     <input
                       value={custName}
@@ -176,6 +206,7 @@ export default function Navbar({ onBookNow }) {
                       inputMode="tel"
                       className="w-full mt-2 border rounded-lg px-3 py-2 text-sm"
                     />
+<<<<<<< HEAD
                     <textarea
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
@@ -199,12 +230,18 @@ export default function Navbar({ onBookNow }) {
                         </label>
                       ))}
                     </div>
+=======
+>>>>>>> origin/sakshi
                     <button
                       onClick={submitOrder}
                       disabled={placing}
                       className="w-full mt-3 bg-[#1F3B2D] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60"
                     >
+<<<<<<< HEAD
                       {placing ? "Placing order..." : payMode === "ONLINE" ? `Place order & pay ${inr2(bill.total)}` : "Place order (cash on delivery)"}
+=======
+                      {placing ? "Sending..." : "Place Order"}
+>>>>>>> origin/sakshi
                     </button>
                     <button onClick={clearCart} className="w-full mt-2 text-xs text-gray-500 hover:text-red-500">Clear All / Cancel</button>
                   </>

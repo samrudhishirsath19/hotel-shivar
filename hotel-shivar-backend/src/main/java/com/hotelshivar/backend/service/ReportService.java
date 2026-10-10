@@ -72,18 +72,25 @@ public class ReportService {
         // ---- food
         Map<String, Agg> itemTotals = new HashMap<>();
         Map<LocalDate, Map<String, Agg>> itemsPerDay = new HashMap<>();
+<<<<<<< HEAD
         BigDecimal foodGst = BigDecimal.ZERO;
         BigDecimal roomGst = BigDecimal.ZERO;
+=======
+>>>>>>> origin/sakshi
         List<FoodOrder> paid = orderRepository.findByStatusAndPaidAtGreaterThanEqualAndPaidAtLessThan(
                 OrderStatus.PAID, startTime, endTime);
         for (FoodOrder o : paid) {
             LocalDate day = o.getPaidAt().toLocalDate();
             Agg dayAgg = food.get(day);
             dayAgg.count++;
+<<<<<<< HEAD
             dayAgg.revenue = dayAgg.revenue.add(o.getTotal()); // sales are counted without GST
             if (o.getTaxAmount() != null) {
                 foodGst = foodGst.add(o.getTaxAmount());
             }
+=======
+            dayAgg.revenue = dayAgg.revenue.add(o.getTotal());
+>>>>>>> origin/sakshi
             for (OrderLine l : o.getLines()) {
                 BigDecimal lineRevenue = l.getUnitPrice().multiply(BigDecimal.valueOf(l.getQuantity()));
                 add(itemTotals, l.getName(), l.getQuantity(), lineRevenue);
@@ -97,12 +104,16 @@ public class ReportService {
         for (Booking b : bookings) {
             LocalDate day = b.getCreatedAt().toLocalDate();
             long nights = Math.max(1, ChronoUnit.DAYS.between(b.getCheckIn(), b.getCheckOut()));
+<<<<<<< HEAD
             BigDecimal amount = b.getRoomCharges() != null
                     ? b.getRoomCharges()
                     : b.getRoom().getPricePerNight().multiply(BigDecimal.valueOf(nights));
             if (b.getTaxAmount() != null) {
                 roomGst = roomGst.add(b.getTaxAmount());
             }
+=======
+            BigDecimal amount = b.getRoom().getPricePerNight().multiply(BigDecimal.valueOf(nights));
+>>>>>>> origin/sakshi
 
             Agg dayAgg = rooms.get(day);
             dayAgg.count++;
@@ -146,8 +157,12 @@ public class ReportService {
         roomTotals.forEach((label, a) -> roomRows.add(new SalesReport.RoomRow(label, (int) a.count, a.nights, a.revenue)));
         roomRows.sort(Comparator.comparing(SalesReport.RoomRow::revenue).reversed());
 
+<<<<<<< HEAD
         SalesReport.Totals totals = new SalesReport.Totals(foodSum, roomSum, foodSum.add(roomSum), orderCount, bookingCount,
                 foodGst, roomGst, foodGst.add(roomGst));
+=======
+        SalesReport.Totals totals = new SalesReport.Totals(foodSum, roomSum, foodSum.add(roomSum), orderCount, bookingCount);
+>>>>>>> origin/sakshi
         return new SalesReport(start, end, totals, days, itemRows(itemTotals), byDay, roomRows);
     }
 

@@ -1,8 +1,13 @@
+<<<<<<< HEAD
 // Address of the Spring Boot backend.
 //  - development (npm run dev): "" = same address as the page; Vite forwards /api and /uploads to the
 //    backend (see vite.config.js), so the browser makes no cross-origin calls.
 //  - production build: VITE_API_URL from a .env file, or http://localhost:8080.
 export const API_BASE = import.meta.env.DEV ? "" : import.meta.env.VITE_API_URL || "http://localhost:8080";
+=======
+// Base URL of the Spring Boot backend. Override with VITE_API_URL in a .env file if needed.
+export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
+>>>>>>> origin/sakshi
 
 export const TOKEN_KEY = "hs_admin_token";
 
@@ -16,6 +21,7 @@ export function clearToken() {
   try { localStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
 }
 
+<<<<<<< HEAD
 const UNREACHABLE = "Cannot reach the server. Please check that the backend is running.";
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -31,10 +37,13 @@ async function send(url, init) {
   }
 }
 
+=======
+>>>>>>> origin/sakshi
 // fetch wrapper: adds the login token and turns non-2xx answers into thrown Errors
 // (err.message is the text from the backend, err.status the HTTP status; status 0 = server not reachable).
 export async function apiFetch(path, options = {}) {
   const token = getToken();
+<<<<<<< HEAD
   const init = {
     ...options,
     headers: {
@@ -53,6 +62,20 @@ export async function apiFetch(path, options = {}) {
   }
   if (!res) {
     const err = new Error(UNREACHABLE);
+=======
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    const err = new Error("Cannot reach the server. Please check that the backend is running.");
+>>>>>>> origin/sakshi
     err.status = 0;
     throw err;
   }

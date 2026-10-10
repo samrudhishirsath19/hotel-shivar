@@ -29,11 +29,20 @@ import BillingPage from "./pages/superadmin/BillingPage";
 import InventoryPage from "./pages/superadmin/InventoryPage";
 import PurchasePage from "./pages/superadmin/PurchasePage";
 import StaffPage from "./pages/superadmin/StaffPage";
+<<<<<<< HEAD
 import MenuPage from "./pages/superadmin/MenuPage";
 import OnlineOrdersPage from "./pages/superadmin/OnlineOrdersPage";
 import OrderTrack from "./pages/OrderTrack";
 import GstSettingsPage from "./pages/superadmin/GstSettingsPage";
 import ModuleAccessPage from "./pages/superadmin/ModuleAccessPage";
+=======
+<<<<<<< Updated upstream
+import MenuTab from "./pages/admin/MenuTab";
+=======
+import StockOverview from "./pages/superadmin/StockOverview";
+import MenuPage from "./pages/superadmin/MenuPage";
+>>>>>>> Stashed changes
+>>>>>>> origin/sakshi
 import SalesTab from "./pages/admin/SalesTab";
 import UsersTab from "./pages/admin/UsersTab";
 import RoomsTab from "./pages/admin/RoomsTab";
@@ -58,17 +67,26 @@ const panelPages = (
     <Route index element={<Overview />} />
     <Route path="sales" element={gate("sales", <><PageTitle title="Sales report" sub="Day-wise sales of food items and rooms" /><SalesTab /></>)} />
     <Route path="kot" element={gate("kot", <KotPage />)} />
+<<<<<<< HEAD
     <Route path="online" element={gate("online", <OnlineOrdersPage />)} />
+=======
+>>>>>>> origin/sakshi
     <Route path="menu" element={gate("menu", <MenuPage />)} />
     <Route path="tables" element={gate("tables", <TablesPage />)} />
     <Route path="reservation" element={gate("reservation", <ReservationPage />)} />
     <Route path="rooms" element={gate("rooms", <><PageTitle title="Rooms" sub="Add rooms (with a photo from this device), edit or hide them" /><RoomsTab /></>)} />
     <Route path="billing" element={gate("billing", <BillingPage />)} />
     <Route path="inventory" element={gate("inventory", <InventoryPage />)} />
+<<<<<<< HEAD
     <Route path="purchase" element={gate("purchase", <PurchasePage />)} />
     <Route path="staff" element={gate("staff", <StaffPage />)} />
     <Route path="gst" element={gate("gst", <GstSettingsPage />)} />
     <Route path="module-access" element={gate("module-access", <ModuleAccessPage />)} />
+=======
+    <Route path="stock" element={gate("stock", <><PageTitle title="Inventory" sub="Stock in hand and purchases (view only)" /><StockOverview /></>)} />
+    <Route path="purchase" element={gate("purchase", <PurchasePage />)} />
+    <Route path="staff" element={gate("staff", <StaffPage />)} />
+>>>>>>> origin/sakshi
     <Route path="users" element={gate("users", <><PageTitle title="Users" sub="Create logins for each department" /><UsersTab /></>)} />
   </>
 );
@@ -120,8 +138,11 @@ export default function App() {
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
+<<<<<<< HEAD
               {/* customer: pay for and track an online order (link has the secret tracking code) */}
               <Route path="/order/:code" element={<OrderTrack />} />
+=======
+>>>>>>> origin/sakshi
               {/* old address of the manager page */}
               <Route path="/manager" element={<ProtectedRoute><GoHome /></ProtectedRoute>} />
               <Route path="*" element={<div className="text-center pt-20">Page not found</div>} />
@@ -129,11 +150,31 @@ export default function App() {
 
             {/* ---------- super admin panel: sidebar layout, super admin only ---------- */}
             <Route path="/super-admin" element={<ProtectedRoute roles={["SUPER_ADMIN"]}><SuperAdminLayout /></ProtectedRoute>}>
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+              <Route index element={<Overview />} />
+              <Route path="sales" element={<><PageTitle title="Sales report" sub="Day-wise sales of food items and rooms" /><SalesTab /></>} />
+              <Route path="kot" element={<KotPage />} />
+              <Route path="menu" element={<><PageTitle title="Menu" sub="Add, edit, hide or delete the items customers see" /><MenuTab /></>} />
+              <Route path="tables" element={<TablesPage />} />
+              <Route path="reservation" element={<ReservationPage />} />
+              <Route path="billing" element={<BillingPage />} />
+              <Route path="inventory" element={<InventoryPage />} />
+              <Route path="purchase" element={<PurchasePage />} />
+              <Route path="staff" element={<StaffPage />} />
+              <Route path="users" element={<><PageTitle title="Users" sub="Create logins for each department" /><UsersTab /></>} />
+=======
+>>>>>>> origin/sakshi
               {panelPages}
             </Route>
             {/* ---------- every other department: the same panel with only its own pages ---------- */}
             <Route path="/panel" element={<ProtectedRoute roles={STAFF_ROLES}><SuperAdminLayout /></ProtectedRoute>}>
               {panelPages}
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
+>>>>>>> origin/sakshi
             </Route>
             {/* old address */}
             <Route path="/admin" element={<Navigate to="/super-admin" replace />} />
