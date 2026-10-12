@@ -50,6 +50,7 @@ public class OrderService {
     private final TableService tableService;
     private final PaymentService paymentService;
     private final GstService gstService;
+    private final OfferService offerService;
 
     /** Tables staff can pick when taking an order (out-of-service tables are left out). */
     public List<RestaurantTable> orderableTables() {
@@ -131,6 +132,12 @@ public class OrderService {
      */
     @Transactional
     public FoodOrder placeOnline(OnlineOrderRequest r) {
+        return placeOnline(r, null);
+    }
+
+    /** customerId = logged-in customer account (null for a guest order). */
+    @Transactional
+    public FoodOrder placeOnline(OnlineOrderRequest r, Long customerId) {
         PaymentMethod method = r.getPaymentMethod();
         if (method != null && !method.isOnline() && method != PaymentMethod.CASH_ON_DELIVERY) {
             throw new BadRequestException("Choose an online payment method or cash on delivery");
@@ -159,8 +166,27 @@ public class OrderService {
             requireAvailable(item);
             order.getLines().add(new OrderLine(item.getId(), item.getName(), item.getPrice(), e.getValue()));
         }
+        order.setCustomerId(customerId);
+        // offer code: checked against the food total, taken off before GST
+        // (or else the best live food offer, applied automatically)
+        OfferService.Quote offer = offerService.codeOrBest(r.getOfferCode(), false, computeTotal(order), 0, null);
+        if (offer != null) {
+            order.setOfferCode(offer.offer().getCode());
+            order.setOfferTitle(offer.offer().getTitle());
+            order.setDiscountAmount(offer.discount());
+        }
         applyTotals(order);
-        return orderRepository.save(order);
+        FoodOrder saved = orderRepository.save(order);
+        if (offer != null) {
+            offerService.recordUse(offer.offer());
+        }
+        return saved;
+    }
+
+    /** A customer's own orders (My Account). */
+    @Transactional(readOnly = true)
+    public List<FoodOrder> ordersOfCustomer(Long customerId) {
+        return orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
     }
 
     // ------------------------------------------------------------------ staff side
@@ -490,7 +516,9 @@ public class OrderService {
     /** Item total (without GST) and the restaurant GST on it - computed once and stored on the order. */
     private void applyTotals(FoodOrder order) {
         order.setTotal(computeTotal(order));
-        order.applyTax(GstService.calculate(order.getTotal(), gstService.foodRate()));
+        // an offer discount comes off before GST
+        BigDecimal discount = order.getDiscountAmount() != null ? order.getDiscountAmount().min(order.getTotal()) : BigDecimal.ZERO;
+        order.applyTax(GstService.calculate(order.getTotal().subtract(discount), gstService.foodRate()));
     }
 
     private BigDecimal computeTotal(FoodOrder order) {

@@ -59,6 +59,12 @@ export function BillTotals({ order }) {
   }
   return (
     <div className="border-t mt-1 pt-2 text-sm">
+      {t.discount > 0 && (
+        <>
+          <div className="flex justify-between text-gray-600"><span>Item total</span><span>{inr2(t.gross)}</span></div>
+          <div className="flex justify-between text-green-700"><span>Offer applied ({order.offerCode})</span><span>- {inr2(t.discount)}</span></div>
+        </>
+      )}
       <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{inr2(t.taxable)}</span></div>
       <div className="flex justify-between text-gray-500 text-xs"><span>CGST {pct(t.rate / 2)} + SGST {pct(t.rate / 2)}</span><span>{inr2(t.tax)}</span></div>
       <div className="flex justify-between font-bold mt-1"><span>Total (incl. GST)</span><span className="text-[#B8893C]">{inr2(t.total)}</span></div>

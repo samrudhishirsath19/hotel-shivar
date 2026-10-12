@@ -27,4 +27,10 @@ public class BanquetController {
     public List<BanquetEnquiry> getAll() {
         return banquetService.getAllEnquiries();
     }
+
+    /** Staff (Guest enquiries permission): mark handled / open again. */
+    @PatchMapping("/{id}/resolved")
+    public BanquetEnquiry resolve(@PathVariable Long id, @RequestParam boolean resolved) {
+        return banquetService.setResolved(id, resolved);
+    }
 }

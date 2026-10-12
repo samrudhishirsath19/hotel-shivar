@@ -40,6 +40,8 @@ export const SECTIONS = [
   { id: "inventory", label: "Inventory", perm: "INVENTORY_VIEW" },
   { id: "purchase", label: "Purchase", perm: "PURCHASE_VIEW" },
   { id: "staff", label: "Staff", perm: "STAFF_VIEW" },
+  { id: "enquiries", label: "Enquiries", perm: "ENQUIRIES" },
+  { id: "offers", label: "Offers", perm: "OFFERS_MANAGE" },
   { id: "sales", label: "Reports", perm: "SALES_REPORT" },
   { id: "gst", label: "GST Settings", perm: "GST_SETTINGS" },
   { id: "module-access", label: "Module Access", roles: ["SUPER_ADMIN"] },

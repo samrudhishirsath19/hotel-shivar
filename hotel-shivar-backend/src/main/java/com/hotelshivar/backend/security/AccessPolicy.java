@@ -25,15 +25,19 @@ public class AccessPolicy {
     private static final Set<String> ALL_STAFF = Set.of(Roles.SUPER_ADMIN, Roles.MANAGER, Roles.RECEPTION,
             Roles.RESTAURANT, Roles.KITCHEN, Roles.BILLING);
 
-    /** What a URL needs: public, a fixed list of roles, or any one of these permissions. */
-    public record Rule(boolean open, Set<String> roles, Set<AppPermission> permissions) {
+    /** What a URL needs: public, a customer account, a fixed list of staff roles, or any one of these permissions. */
+    public record Rule(boolean open, boolean customer, Set<String> roles, Set<AppPermission> permissions) {
 
-        static Rule publicUrl() { return new Rule(true, null, null); }
-        static Rule roles(Set<String> roles) { return new Rule(false, roles, null); }
-        static Rule any(AppPermission first, AppPermission... more) { return new Rule(false, null, EnumSet.of(first, more)); }
+        static Rule publicUrl() { return new Rule(true, false, null, null); }
+        static Rule customerAccount() { return new Rule(false, true, null, null); }
+        static Rule roles(Set<String> roles) { return new Rule(false, false, roles, null); }
+        static Rule any(AppPermission first, AppPermission... more) { return new Rule(false, false, null, EnumSet.of(first, more)); }
 
         /** has(role, permission) answers from the Module Access settings. */
         public boolean allows(String role, BiPredicate<String, AppPermission> has) {
+            if (customer) {
+                return false; // customer URLs are not for staff logins
+            }
             if (open || Roles.SUPER_ADMIN.equals(role)) {
                 return true;
             }
@@ -69,6 +73,12 @@ public class AccessPolicy {
                 || path.equals("/api/orders/online"))) {
             return Rule.publicUrl();
         }
+        // Customer account on the website (separate from staff logins)
+        if (post && (path.equals("/api/customer/register") || path.equals("/api/customer/login"))) return Rule.publicUrl();
+        if (under(path, "/api/customer")) return Rule.customerAccount();
+        // Customer tracks a room booking with its secret code
+        if (get && path.matches("/api/bookings/track/[A-Za-z0-9]+")) return Rule.publicUrl();
+
         // Customer pays for / tracks their online order with its secret tracking code
         if (post && path.matches("/api/orders/online/[A-Za-z0-9]+/pay")) return Rule.publicUrl();
         if (get && path.matches("/api/orders/track/[A-Za-z0-9]+")) return Rule.publicUrl();
@@ -81,7 +91,11 @@ public class AccessPolicy {
 
         // ---- Reception (front desk)
         if (under(path, "/api/contact") || under(path, "/api/banquet")) return Rule.any(ENQUIRIES);
-        if (under(path, "/api/rooms") || under(path, "/api/admin/uploads")) return Rule.any(ROOMS_SETUP);
+        if (under(path, "/api/rooms")) return Rule.any(ROOMS_SETUP);
+        if (under(path, "/api/admin/uploads")) return Rule.any(ROOMS_SETUP, OFFERS_MANAGE); // room / offer photos
+
+        // ---- Offers (reading is public, above)
+        if (under(path, "/api/offers")) return Rule.any(OFFERS_MANAGE);
 
         // ---- Restaurant: order taking (table / room orders, table list for the order screen)
         if (under(path, "/api/orders")) return Rule.any(ORDER_TAKING);

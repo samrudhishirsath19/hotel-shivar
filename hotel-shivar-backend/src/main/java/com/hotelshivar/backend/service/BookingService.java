@@ -20,6 +20,21 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
     private final GstService gstService;
+    private final OfferService offerService;
+
+    /** Public tracking page for a booking (secret code from the confirmation). */
+    public Booking track(String code) {
+        return bookingRepository.findByTrackingCode(code == null ? "" : code.trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found. Please check your booking link."));
+    }
+
+    private String newTrackingCode() {
+        String code;
+        do {
+            code = "BK" + com.hotelshivar.backend.payment.DemoPaymentGateway.random(18);
+        } while (bookingRepository.findByTrackingCode(code).isPresent());
+        return code;
+    }
 
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
@@ -35,6 +50,11 @@ public class BookingService {
     }
 
     public Booking createBooking(BookingRequest request) {
+        return createBooking(request, null);
+    }
+
+    /** customerId = logged-in customer account (null for a guest booking). */
+    public Booking createBooking(BookingRequest request, Long customerId) {
         if (!request.getCheckOut().isAfter(request.getCheckIn())) {
             throw new BookingConflictException("Check-out date must be after check-in date");
         }
@@ -63,10 +83,27 @@ public class BookingService {
                 .numberOfGuests(request.getNumberOfGuests())
                 .specialRequests(request.getSpecialRequests())
                 .status(BookingStatus.PENDING)
+                .customerId(customerId)
+                .trackingCode(newTrackingCode())
                 .build();
+
+        // offer: the code the guest typed, or else the best live offer for this stay (applied automatically);
+        // checked against the room charges and taken off before GST
+        int nights = (int) Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(request.getCheckIn(), request.getCheckOut()));
+        java.math.BigDecimal charges = room.getPricePerNight().multiply(java.math.BigDecimal.valueOf(nights));
+        OfferService.Quote offer = offerService.codeOrBest(request.getOfferCode(), true, charges, nights, request.getCheckIn());
+        if (offer != null) {
+            booking.setOfferCode(offer.offer().getCode());
+            booking.setOfferTitle(offer.offer().getTitle());
+            booking.setDiscountAmount(offer.discount());
+        }
         applyRoomTax(booking);
 
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        if (offer != null) {
+            offerService.recordUse(offer.offer());
+        }
+        return saved;
     }
 
     public Booking updateStatus(Long id, BookingStatus status) {
@@ -93,6 +130,11 @@ public class BookingService {
         java.math.BigDecimal perNight = b.getRoom().getPricePerNight();
         b.setNights(nights);
         b.setRoomCharges(perNight.multiply(java.math.BigDecimal.valueOf(nights)));
-        b.applyTax(GstService.calculate(b.getRoomCharges(), gstService.roomRate(perNight)));
+        // an offer discount comes off first; GST is on what the guest actually pays, and the GST slab is
+        // decided by that price per night
+        java.math.BigDecimal discount = b.getDiscountAmount() != null ? b.getDiscountAmount().min(b.getRoomCharges()) : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal taxable = b.getRoomCharges().subtract(discount);
+        java.math.BigDecimal effectivePerNight = taxable.divide(java.math.BigDecimal.valueOf(nights), 2, java.math.RoundingMode.HALF_UP);
+        b.applyTax(GstService.calculate(taxable, gstService.roomRate(effectivePerNight)));
     }
 }

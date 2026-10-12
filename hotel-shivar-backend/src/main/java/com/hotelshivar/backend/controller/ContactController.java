@@ -27,4 +27,10 @@ public class ContactController {
     public List<ContactMessage> getAll() {
         return contactService.getAllMessages();
     }
+
+    /** Staff (Guest enquiries permission): mark handled / open again. */
+    @PatchMapping("/{id}/resolved")
+    public ContactMessage resolve(@PathVariable Long id, @RequestParam boolean resolved) {
+        return contactService.setResolved(id, resolved);
+    }
 }

@@ -22,6 +22,8 @@ public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
 
     Optional<FoodOrder> findByTrackingCode(String trackingCode);
 
+    List<FoodOrder> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+
     @Query("""
            select o from FoodOrder o
            where o.orderType = :type and (o.createdAt >= :since or o.status in :running)

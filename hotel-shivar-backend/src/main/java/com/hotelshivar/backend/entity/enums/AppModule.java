@@ -28,6 +28,8 @@ public enum AppModule {
     REPORTS("Reports", "Sales report: day-wise food and room sales, GST collected",
             List.of()),
     SETTINGS("Settings", "GST settings: rates, GSTIN and invoice details",
+            List.of()),
+    OFFERS("Offers", "Offers and offer codes customers use when booking or ordering",
             List.of());
 
     private final String label;

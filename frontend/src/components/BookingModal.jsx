@@ -3,11 +3,20 @@ import { apiFetch } from "../api";
 import { groupRooms } from "../roomGroups";
 import { digits10, isPhone10, PHONE_ERROR } from "../roles";
 import { useGst, calcTax, roomRate, taxOf, inr2, pct } from "../gst";
+import { Link } from "react-router-dom";
+import { checkOffer, bestOffer } from "../offers";
+import OfferApplied from "./OfferApplied";
+import { customerAuth, useCustomer } from "../context/CustomerContext";
 
 const blank = { category: "", roomId: "", name: "", email: "", mobile: "", checkIn: "", checkOut: "", guests: 1 };
 
-export default function BookingModal({ isOpen, onClose, roomName = "" }) {
+export default function BookingModal({ isOpen, onClose, roomName = "", offerCode: startCode = "" }) {
   const [form, setForm] = useState(blank);
+  const { customer } = useCustomer();
+  const [code, setCode] = useState("");     // what the guest typed
+  const [offer, setOffer] = useState(null); // { code, title, discount, discountPercent } once checked
+  const [offerMsg, setOfferMsg] = useState("");
+  const [auto, setAuto] = useState(false);   // offer picked automatically (no code typed)
   const [rooms, setRooms] = useState([]);
   const [occupied, setOccupied] = useState([]);
   const [booking, setBooking] = useState(null); // the confirmed booking -> confirmation screen
@@ -18,6 +27,10 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
   useEffect(() => {
     if (!isOpen) return;
     setError("");
+    setCode(startCode || "");
+    setOffer(null);
+    setOfferMsg("");
+    setAuto(false);
     apiFetch("/api/rooms?availableOnly=true")
       .then((list) => {
         setRooms(list || []);
@@ -25,7 +38,13 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
         if (match) setForm((f) => ({ ...f, category: match.name.trim().replace(/\s+/g, " ").toLowerCase(), roomId: "" }));
       })
       .catch(() => setError("Could not load rooms. Please check that the backend is running."));
-  }, [isOpen, roomName]);
+  }, [isOpen, roomName, startCode]);
+
+  // a logged-in customer: fill in their details
+  useEffect(() => {
+    if (!isOpen || !customer) return;
+    setForm((f) => ({ ...f, name: f.name || customer.name || "", email: f.email || customer.email || "", mobile: f.mobile || customer.phone || "" }));
+  }, [isOpen, customer]);
 
   // which rooms are already booked for the chosen dates (tonight until dates are picked)
   useEffect(() => {
@@ -41,8 +60,31 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
   const chosen = group?.free.find((r) => String(r.id) === form.roomId);
   const stayNights = form.checkIn && form.checkOut && form.checkOut > form.checkIn
     ? Math.round((new Date(form.checkOut) - new Date(form.checkIn)) / 86400000) : 0;
-  const estimate = chosen && stayNights > 0
-    ? calcTax(Number(chosen.pricePerNight) * stayNights, roomRate(gst, chosen.pricePerNight)) : null;
+  const charges = chosen && stayNights > 0 ? Number(chosen.pricePerNight) * stayNights : 0;
+  // same as the server: the offer comes off first, and the GST slab follows the price per night after the offer
+  const discount = offer && charges ? Math.min(Number(offer.discount || 0), charges) : 0;
+  const estimate = charges
+    ? calcTax(charges - discount, roomRate(gst, (charges - discount) / stayNights)) : null;
+
+  // the room, dates or amount changed: check the code again
+  const offerKey = `${code.trim().toUpperCase()}|${charges}|${stayNights}|${form.checkIn}`;
+  useEffect(() => {
+    if (!isOpen) return;
+    const c = code.trim();
+    if (!charges) { setOffer(null); setAuto(false); setOfferMsg(c ? "Choose dates and a room to apply this code." : ""); return; }
+    let alive = true;
+    const t = setTimeout(() => {
+      // no code typed: the best offer for this stay is applied automatically
+      const ask = c
+        ? checkOffer({ code: c, kind: "ROOM", amount: charges, nights: stayNights, checkIn: form.checkIn })
+        : bestOffer({ kind: "ROOM", amount: charges, nights: stayNights, checkIn: form.checkIn });
+      ask
+        .then((r) => { if (!alive) return; setOffer(r.valid ? r : null); setAuto(!c && r.valid); setOfferMsg(r.valid || !c ? "" : r.message); })
+        .catch((e) => { if (alive) { setOffer(null); setOfferMsg(e.message); } });
+    }, 350);
+    return () => { alive = false; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, offerKey]);
 
   // a chosen room that became unavailable for the new dates is cleared
   useEffect(() => {
@@ -60,6 +102,9 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
     onClose();
     setBooking(null);
     setForm(blank);
+    setCode("");
+    setOffer(null);
+    setOfferMsg("");
   };
 
   const handleBooking = async () => {
@@ -76,10 +121,15 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
       setError("Check-out date must be after the check-in date.");
       return;
     }
+    if (code.trim() && !offer) {
+      setError(offerMsg || "This offer code cannot be used for this booking. Remove it to book without an offer.");
+      return;
+    }
     setBusy(true);
     try {
       const saved = await apiFetch("/api/bookings", {
         method: "POST",
+        headers: customerAuth(), // a logged-in customer: the booking goes into their account
         body: JSON.stringify({
           roomId: Number(form.roomId),
           guestName: form.name.trim(),
@@ -88,6 +138,7 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
           checkIn: form.checkIn,
           checkOut: form.checkOut,
           numberOfGuests: Number(form.guests),
+          offerCode: code.trim() || null,
         }),
       });
       setBooking(saved);
@@ -190,9 +241,29 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
                 </select>
               </div>
 
+              <div>
+                <label className="text-sm font-medium">{auto ? "Have another offer code?" : "Offer code"} <span className="text-gray-400 font-normal">(optional)</span></label>
+                <div className="mt-1 flex gap-2">
+                  <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20))}
+                    placeholder="e.g. MONSOON20" className={inputCls.replace("mt-1 ", "") + " uppercase"} />
+                  {code && <button type="button" onClick={() => setCode("")} className="px-4 rounded-xl border text-sm">Remove</button>}
+                </div>
+                {offer && (
+                  <p className="text-xs text-green-700 mt-1">
+                    ✓ {offer.title} ({offer.code}) - {offer.discountPercent}% off {auto ? "applied automatically - best offer for your stay" : "applied"}
+                  </p>
+                )}
+                {!offer && !code && charges > 0 && <p className="text-xs text-gray-500 mt-1">No offer applies to these dates. You can still enter a code.</p>}
+                {!offer && offerMsg && <p className="text-xs text-red-600 mt-1">{offerMsg}</p>}
+                {!code && !offer && <Link to="/offers" onClick={close} className="text-xs text-[#B8893C] underline mt-1 inline-block">See current offers</Link>}
+              </div>
+
               {estimate && (
                 <div className="rounded-xl bg-[#F3F5F1] px-4 py-3 text-sm space-y-1">
-                  <div className="flex justify-between"><span className="text-gray-600">Room {chosen.roomNumber}: {stayNights} night{stayNights > 1 ? "s" : ""} × {inr2(chosen.pricePerNight)}</span><span>{inr2(estimate.taxable)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Room {chosen.roomNumber}: {stayNights} night{stayNights > 1 ? "s" : ""} × {inr2(chosen.pricePerNight)}</span><span>{inr2(charges)}</span></div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-700"><span>Offer {offer.code}</span><span>- {inr2(discount)}</span></div>
+                  )}
                   {estimate.tax > 0 && (
                     <div className="flex justify-between text-gray-600"><span>GST {pct(estimate.rate)} (CGST {pct(estimate.rate / 2)} + SGST {pct(estimate.rate / 2)})</span><span>{inr2(estimate.tax)}</span></div>
                   )}
@@ -211,6 +282,8 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
             <h3 className="font-serif text-2xl text-[#1F3B2D] mt-4">Booking Confirmed!</h3>
             <p className="text-sm text-gray-600 mt-1">Thank you, {booking.guestName}. Your room is reserved.</p>
 
+            <OfferApplied x={booking} className="mt-5" />
+
             <div className="mt-5 text-left bg-[#F3F5F1] rounded-xl p-4 text-sm space-y-1.5">
               <div className="flex justify-between"><span className="text-gray-500">Booking ID</span><b>#{booking.id}</b></div>
               <div className="flex justify-between"><span className="text-gray-500">Room</span><b>{booking.room?.name} · No. {booking.room?.roomNumber}</b></div>
@@ -221,6 +294,12 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
               {taxOf(booking, "roomCharges") && (
                 <>
                   <div className="flex justify-between border-t pt-1.5"><span className="text-gray-500">Room charges</span><b>{inr2(booking.roomCharges)}</b></div>
+                  {booking.discountAmount > 0 && (
+                    <>
+                      <div className="flex justify-between text-green-700"><span>Offer discount ({booking.offerCode})</span><b>- {inr2(booking.discountAmount)}</b></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Amount after offer</span><b>{inr2(booking.roomCharges - booking.discountAmount)}</b></div>
+                    </>
+                  )}
                   {booking.taxAmount > 0 && (
                     <div className="flex justify-between"><span className="text-gray-500">GST {pct(booking.gstRate)} (CGST {inr2(booking.cgstAmount)} + SGST {inr2(booking.sgstAmount)})</span><b>{inr2(booking.taxAmount)}</b></div>
                   )}
@@ -228,7 +307,13 @@ export default function BookingModal({ isOpen, onClose, roomName = "" }) {
                 </>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-3">Please keep your booking ID. Our front desk will call you on {booking.phone} if anything is needed.</p>
+            {booking.trackingCode && (
+              <Link to={`/booking/${booking.trackingCode}`} onClick={close}
+                className="mt-4 block w-full border-2 border-[#1F3B2D] text-[#1F3B2D] font-semibold py-3 rounded-xl">
+                Track your booking
+              </Link>
+            )}
+            <p className="text-xs text-gray-500 mt-3">{customer ? "This booking is saved in My Account." : "Save the tracking link, or log in to My Account and add it with the code."} Please keep your booking ID. Our front desk will call you on {booking.phone} if anything is needed.</p>
             <button onClick={close} className="mt-5 w-full bg-[#1F3B2D] text-white font-semibold py-3 rounded-xl">Done</button>
           </div>
         )}

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart, LAST_ORDER_KEY } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { homeFor, digits10, isPhone10, PHONE_ERROR } from "../roles";
 import { useGst, calcTax, foodRate, inr2, pct } from "../gst";
+import { useCustomer } from "../context/CustomerContext";
+import { checkOffer, bestOffer } from "../offers";
 
 const links = [
   { to: "/", label: "Home" },
@@ -31,7 +33,33 @@ export default function Navbar({ onBookNow }) {
   const { cart, total, count, removeFromCart, updateCartQty, clearCart, placeOnlineOrder } = useCart();
   const { user, logout } = useAuth();
   const gst = useGst();
-  const bill = calcTax(total, foodRate(gst)); // estimate; the order stores the exact GST
+  const { customer } = useCustomer();
+  const [offerCode, setOfferCode] = useState("");
+  const [offer, setOffer] = useState(null); // checked offer: { code, title, discount }
+  const [offerMsg, setOfferMsg] = useState("");
+  const discount = offer ? Math.min(Number(offer.discount || 0), total) : 0;
+  const bill = calcTax(total - discount, foodRate(gst)); // estimate; the order stores the exact GST
+
+  // a logged-in customer: fill in their name and mobile
+  useEffect(() => {
+    if (!customer) return;
+    setCustName((v) => v || customer.name || "");
+    setCustPhone((v) => v || customer.phone || "");
+  }, [customer]);
+
+  // check the offer code again whenever the cart total changes
+  useEffect(() => {
+    const c = offerCode.trim();
+    if (!total) { setOffer(null); setOfferMsg(""); return; }
+    let alive = true;
+    const t = setTimeout(() => {
+      // no code typed: the best food offer is applied automatically (the server does the same)
+      (c ? checkOffer({ code: c, kind: "FOOD", amount: total }) : bestOffer({ kind: "FOOD", amount: total }))
+        .then((r) => { if (!alive) return; setOffer(r.valid ? r : null); setOfferMsg(r.valid || !c ? "" : r.message); })
+        .catch((e) => { if (alive) { setOffer(null); setOfferMsg(e.message); } });
+    }, 350);
+    return () => { alive = false; clearTimeout(t); };
+  }, [offerCode, total]);
 
   const linkClass = ({ isActive }) =>
     `px-3 py-2 text-sm transition-colors ${
@@ -51,6 +79,10 @@ export default function Navbar({ onBookNow }) {
       setOrderMsg({ ok: false, text: "Please enter the full delivery address (house / street / area)" });
       return;
     }
+    if (offerCode.trim() && !offer) {
+      setOrderMsg({ ok: false, text: offerMsg || "This offer code cannot be used. Remove it to order without an offer." });
+      return;
+    }
     setPlacing(true);
     try {
       const order = await placeOnlineOrder({
@@ -59,7 +91,9 @@ export default function Navbar({ onBookNow }) {
         deliveryAddress: address.trim(),
         deliveryNote: note.trim() || null,
         paymentMethod: payMode === "CASH_ON_DELIVERY" ? "CASH_ON_DELIVERY" : null,
+        offerCode: offerCode.trim() || null,
       });
+      setOfferCode("");
       setOrderMsg({ ok: true, text: "" });
       setAddress(""); setNote("");
       setCartOpen(false);
@@ -88,6 +122,9 @@ export default function Navbar({ onBookNow }) {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link to="/account" className="hidden md:block text-white text-sm px-3 py-1.5 rounded-full hover:bg-white/10" title="Track your bookings and orders">
+            {customer ? `👤 ${customer.name.split(" ")[0]}` : "My Account"}
+          </Link>
           {user ? (
             <>
               <Link to={homeFor(user.role)} className="hidden md:block bg-white text-[#1F3B2D] text-sm font-semibold px-4 py-1.5 rounded-full hover:bg-gray-100">
@@ -151,10 +188,18 @@ export default function Navbar({ onBookNow }) {
                         <button onClick={() => removeFromCart(c.id)} className="text-red-500 text-[11px] font-bold px-1">✕</button>
                       </div>
                     ))}
-                    {bill.tax > 0 ? (
+                    <div className="mt-3 flex gap-2">
+                      <input value={offerCode} onChange={(e) => setOfferCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20))}
+                        placeholder="Offer code (optional)" aria-label="Offer code" className="flex-1 border rounded-lg px-3 py-2 text-sm uppercase" />
+                      {offerCode && <button type="button" onClick={() => setOfferCode("")} className="text-xs border rounded-lg px-2">Remove</button>}
+                    </div>
+                    {offer && <p className="text-[11px] text-green-700 mt-1">🏷️ Offer applied: {offer.title} ({offer.code}){offerCode ? "" : " - automatically"}</p>}
+                    {!offer && offerMsg && <p className="text-[11px] text-red-600 mt-1">{offerMsg}</p>}
+                    {bill.tax > 0 || discount > 0 ? (
                       <div className="mt-3 text-sm text-[#1F3B2D]">
-                        <div className="flex justify-between text-gray-600"><span>Item total</span><span>{inr2(bill.taxable)}</span></div>
-                        <div className="flex justify-between text-gray-500 text-xs"><span>GST {pct(bill.rate)} (CGST + SGST)</span><span>{inr2(bill.tax)}</span></div>
+                        <div className="flex justify-between text-gray-600"><span>Item total</span><span>{inr2(total)}</span></div>
+                        {discount > 0 && <div className="flex justify-between text-green-700"><span>Offer {offer.code}</span><span>- {inr2(discount)}</span></div>}
+                        {bill.tax > 0 && <div className="flex justify-between text-gray-500 text-xs"><span>GST {pct(bill.rate)} (CGST + SGST)</span><span>{inr2(bill.tax)}</span></div>}
                         <div className="flex justify-between font-bold mt-1"><span>To pay</span><span className="text-[#B8893C]">{inr2(bill.total)}</span></div>
                       </div>
                     ) : (
@@ -241,6 +286,9 @@ export default function Navbar({ onBookNow }) {
               {l.label}
             </NavLink>
           ))}
+          <Link to="/account" className={linkClass({ isActive: false })} onClick={() => setMenuOpen(false)}>
+            {customer ? `👤 My Account (${customer.name.split(" ")[0]})` : "My Account - track bookings & orders"}
+          </Link>
           <div className="flex gap-2 mt-3 pt-3 border-t border-white/10">
             {user ? (
               <>

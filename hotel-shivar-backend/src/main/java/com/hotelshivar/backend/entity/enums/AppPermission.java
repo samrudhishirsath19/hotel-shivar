@@ -21,7 +21,7 @@ public enum AppPermission {
 
     // ---- Reception (front desk)
     ROOMS_SETUP(AppModule.RECEPTION, "Rooms set-up", "Add / edit / delete rooms and room photos"),
-    ENQUIRIES(AppModule.RECEPTION, "Guest enquiries", "Contact and banquet enquiries"),
+    ENQUIRIES(AppModule.RECEPTION, "Guest enquiries", "Enquiries page: contact and banquet enquiries from the website"),
 
     // ---- Restaurant
     TABLE_VIEW(AppModule.RESTAURANT, "Restaurant tables", "Tables page: which tables are free / occupied and their orders",
@@ -63,7 +63,10 @@ public enum AppPermission {
     SALES_REPORT(AppModule.REPORTS, "Sales report", "Day-wise food and room sales, GST collected"),
 
     // ---- Settings
-    GST_SETTINGS(AppModule.SETTINGS, "GST settings", "GST rates, GSTIN and invoice details");
+    GST_SETTINGS(AppModule.SETTINGS, "GST settings", "GST rates, GSTIN and invoice details"),
+
+    // ---- Offers
+    OFFERS_MANAGE(AppModule.OFFERS, "Manage offers", "Add / edit offers: code, discount, valid dates, where they apply");
 
     private final AppModule module;
     private final String label;

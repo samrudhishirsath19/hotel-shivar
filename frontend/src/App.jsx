@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import SectionGate from "./components/SectionGate";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { CustomerProvider } from "./context/CustomerContext";
 import { DEPARTMENTS, homeFor } from "./roles";
 
 import Home from "./pages/Home";
@@ -32,6 +33,10 @@ import StaffPage from "./pages/superadmin/StaffPage";
 import MenuPage from "./pages/superadmin/MenuPage";
 import OnlineOrdersPage from "./pages/superadmin/OnlineOrdersPage";
 import OrderTrack from "./pages/OrderTrack";
+import BookingTrack from "./pages/BookingTrack";
+import Account from "./pages/Account";
+import OffersPage from "./pages/superadmin/OffersPage";
+import EnquiriesPage from "./pages/superadmin/EnquiriesPage";
 import GstSettingsPage from "./pages/superadmin/GstSettingsPage";
 import ModuleAccessPage from "./pages/superadmin/ModuleAccessPage";
 import SalesTab from "./pages/admin/SalesTab";
@@ -67,6 +72,8 @@ const panelPages = (
     <Route path="inventory" element={gate("inventory", <InventoryPage />)} />
     <Route path="purchase" element={gate("purchase", <PurchasePage />)} />
     <Route path="staff" element={gate("staff", <StaffPage />)} />
+    <Route path="offers" element={gate("offers", <OffersPage />)} />
+    <Route path="enquiries" element={gate("enquiries", <EnquiriesPage />)} />
     <Route path="gst" element={gate("gst", <GstSettingsPage />)} />
     <Route path="module-access" element={gate("module-access", <ModuleAccessPage />)} />
     <Route path="users" element={gate("users", <><PageTitle title="Users" sub="Create logins for each department" /><UsersTab /></>)} />
@@ -83,7 +90,7 @@ function ScrollToTop() {
 const FOOTER_PATHS = ["/", "/rooms", "/gallery", "/restaurant", "/banquet", "/offers", "/about"];
 
 // The public website: navbar on top, booking window, page below.
-function SiteLayout({ bookingOpen, setBookingOpen, selectedRoom, openBooking }) {
+function SiteLayout({ bookingOpen, setBookingOpen, selectedRoom, selectedOffer, openBooking }) {
   const { pathname } = useLocation();
   const showFooter = FOOTER_PATHS.includes(pathname.replace(/\/+$/, "") || "/");
   return (
@@ -93,7 +100,7 @@ function SiteLayout({ bookingOpen, setBookingOpen, selectedRoom, openBooking }) 
         <Outlet />
       </main>
       {showFooter && <Footer />}
-      <BookingModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} roomName={selectedRoom} />
+      <BookingModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} roomName={selectedRoom} offerCode={selectedOffer} />
     </div>
   );
 }
@@ -101,16 +108,22 @@ function SiteLayout({ bookingOpen, setBookingOpen, selectedRoom, openBooking }) 
 export default function App() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState("");
-  const openBooking = (roomName = "") => { setSelectedRoom(roomName); setBookingOpen(true); };
+  const [selectedOffer, setSelectedOffer] = useState("");
+  const openBooking = (roomName = "", offerCode = "") => {
+    setSelectedRoom(typeof roomName === "string" ? roomName : "");
+    setSelectedOffer(typeof offerCode === "string" ? offerCode : "");
+    setBookingOpen(true);
+  };
 
   return (
     <BrowserRouter>
       <AuthProvider>
+        <CustomerProvider>
         <CartProvider>
           <ScrollToTop />
           <Routes>
             {/* ---------- public website (+ login and manager page) ---------- */}
-            <Route element={<SiteLayout bookingOpen={bookingOpen} setBookingOpen={setBookingOpen} selectedRoom={selectedRoom} openBooking={openBooking} />}>
+            <Route element={<SiteLayout bookingOpen={bookingOpen} setBookingOpen={setBookingOpen} selectedRoom={selectedRoom} selectedOffer={selectedOffer} openBooking={openBooking} />}>
               <Route path="/" element={<Home onBookNow={openBooking} />} />
               <Route path="/rooms" element={<Rooms onBookNow={openBooking} />} />
               <Route path="/gallery" element={<Gallery />} />
@@ -122,6 +135,9 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               {/* customer: pay for and track an online order (link has the secret tracking code) */}
               <Route path="/order/:code" element={<OrderTrack />} />
+              <Route path="/booking/:code" element={<BookingTrack />} />
+              {/* customer account: separate from the staff login */}
+              <Route path="/account" element={<Account />} />
               {/* old address of the manager page */}
               <Route path="/manager" element={<ProtectedRoute><GoHome /></ProtectedRoute>} />
               <Route path="*" element={<div className="text-center pt-20">Page not found</div>} />
@@ -139,6 +155,7 @@ export default function App() {
             <Route path="/admin" element={<Navigate to="/super-admin" replace />} />
           </Routes>
         </CartProvider>
+        </CustomerProvider>
       </AuthProvider>
     </BrowserRouter>
   );

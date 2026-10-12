@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface OfferRepository extends JpaRepository<Offer, Long> {
     List<Offer> findByActiveTrue();
+    java.util.Optional<Offer> findByCodeIgnoreCase(String code);
 }

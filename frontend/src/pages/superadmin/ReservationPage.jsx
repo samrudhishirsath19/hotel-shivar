@@ -95,6 +95,7 @@ export function Bookings() {
                     <>
                       <div className="font-bold">{inr2(b.grandTotal)}</div>
                       {b.taxAmount > 0 && <div className="text-[11px] text-gray-500">incl. GST {pct(b.gstRate)} {inr2(b.taxAmount)}</div>}
+                      {b.discountAmount > 0 && <div className="text-[11px] text-green-700">🏷️ offer applied {b.offerCode} - {inr2(b.discountAmount)}</div>}
                     </>
                   ) : <span className="text-xs text-gray-400">-</span>}
                 </td>

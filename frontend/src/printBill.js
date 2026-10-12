@@ -71,7 +71,7 @@ function header(gst, heading) {
 }
 
 // rows under the item table: Taxable value, CGST, SGST, Total GST, then the amount payable
-function totalRows(t, amount) {
+function totalRows(t, amount, src) {
   if (!t) {
     return `<tr class="total"><td colspan="3">Total</td><td class="n">${rs2(amount)}</td></tr>`;
   }
@@ -80,7 +80,13 @@ function totalRows(t, amount) {
     : `<tr class="sum"><td colspan="3">CGST @ ${pct(t.rate / 2)}</td><td class="n">${rs2(t.cgst)}</td></tr>
        <tr class="sum"><td colspan="3">SGST @ ${pct(t.rate / 2)}</td><td class="n">${rs2(t.sgst)}</td></tr>
        <tr class="sum"><td colspan="3">Total GST (${pct(t.rate)})</td><td class="n">${rs2(t.tax)}</td></tr>`;
+  // offer discount comes off before GST
+  const offer = t.discount > 0
+    ? `<tr class="sum"><td colspan="3">Gross amount</td><td class="n">${rs2(t.gross)}</td></tr>
+       <tr class="sum"><td colspan="3">Less: offer applied - ${esc(src?.offerTitle || "Offer")}${src?.offerCode ? " (" + esc(src.offerCode) + ")" : ""}</td><td class="n">- ${rs2(t.discount)}</td></tr>`
+    : "";
   return `
+    ${offer}
     <tr class="sum"><td colspan="3">Taxable value</td><td class="n">${rs2(t.taxable)}</td></tr>
     ${tax}
     <tr class="total"><td colspan="3">Amount payable</td><td class="n">${rs2(t.total)}</td></tr>`;
@@ -119,7 +125,7 @@ export function printBill(order, opts = {}) {
   <table>
     <thead><tr><th>Item</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th></tr></thead>
     <tbody>${rows}</tbody>
-    <tfoot>${totalRows(t, order.total)}</tfoot>
+    <tfoot>${totalRows(t, order.total, order)}</tfoot>
   </table>
   ${method ? `<div class="after"><b>Mode:</b> ${esc(methodLabel(method))}${paid && order.paymentRef ? ` · Ref ${esc(order.paymentRef)}` : ""}</div>` : ""}
   ${!t ? `<p class="note">Bill issued before GST was set up in the system - no GST was charged on it.</p>` : ""}
@@ -153,7 +159,7 @@ export function printBookingInvoice(b) {
   <table>
     <thead><tr><th>Item</th><th class="n">Nights</th><th class="n">Rate</th><th class="n">Amount</th></tr></thead>
     <tbody><tr><td>Room tariff</td><td class="n">${nights}</td><td class="n">${rs2(perNight)}</td><td class="n">${rs2(charges)}</td></tr></tbody>
-    <tfoot>${totalRows(t, charges)}</tfoot>
+    <tfoot>${totalRows(t, charges, b)}</tfoot>
   </table>
   ${!t ? `<p class="note">Booking made before GST was set up in the system - no GST was charged on it.</p>` : ""}
   <p class="thanks">Thank you for staying with us!</p>`;

@@ -1,7 +1,9 @@
 package com.hotelshivar.backend.security;
 
 import com.hotelshivar.backend.entity.AdminUser;
+import com.hotelshivar.backend.entity.CustomerAccount;
 import com.hotelshivar.backend.repository.AdminUserRepository;
+import com.hotelshivar.backend.repository.CustomerAccountRepository;
 import com.hotelshivar.backend.service.ModuleAccessService;
 import com.hotelshivar.backend.service.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +19,9 @@ import java.util.Optional;
  * Checks every /api request against AccessPolicy.
  * The user is re-read from the database on each protected call, so a deactivated user
  * or a changed department takes effect immediately (not only after the token expires).
+ * <p>
+ * Two kinds of login: staff (dashboard) and customer (website account). A customer token is never accepted
+ * for staff URLs and a staff token never for customer URLs - even if both use the same email address.
  */
 @Component
 @RequiredArgsConstructor
@@ -24,9 +29,12 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     public static final String USER_ATTRIBUTE = "authUser";
     public static final String CLAIMS_ATTRIBUTE = "authClaims";
+    /** The logged-in customer account (customer URLs, and public URLs when a customer is logged in). */
+    public static final String CUSTOMER_ATTRIBUTE = "authCustomer";
 
     private final TokenService tokenService;
     private final AdminUserRepository adminUserRepository;
+    private final CustomerAccountRepository customerRepository;
     private final AccessPolicy accessPolicy;
     private final ModuleAccessService moduleAccess;
 
@@ -35,20 +43,28 @@ public class AuthInterceptor implements HandlerInterceptor {
             throws IOException {
 
         AccessPolicy.Rule rule = accessPolicy.rule(request.getMethod(), request.getRequestURI(), request::getParameter);
+        Optional<TokenService.TokenClaims> claims = claims(request);
+
         if (rule.open()) {
-            return true; // public URL
+            // public URL; remember a logged-in customer so a booking / order is added to their account
+            customer(claims).ifPresent(c -> request.setAttribute(CUSTOMER_ATTRIBUTE, c));
+            return true;
         }
 
-        Optional<AdminUser> user = Optional.empty();
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            var claims = tokenService.verify(header.substring(7).trim());
-            if (claims.isPresent()) {
-                request.setAttribute(CLAIMS_ATTRIBUTE, claims.get());
-                user = adminUserRepository.findByEmailIgnoreCase(claims.get().email())
-                        .filter(u -> Boolean.TRUE.equals(u.getActive()));
+        if (rule.customer()) {
+            Optional<CustomerAccount> c = customer(claims);
+            if (c.isEmpty()) {
+                return reject(response, HttpServletResponse.SC_UNAUTHORIZED, "Please log in to your account");
             }
+            request.setAttribute(CUSTOMER_ATTRIBUTE, c.get());
+            return true;
         }
+
+        Optional<AdminUser> user = claims
+                .filter(cl -> !cl.isCustomer())
+                .flatMap(cl -> adminUserRepository.findByEmailIgnoreCase(cl.email()))
+                .filter(u -> Boolean.TRUE.equals(u.getActive()));
+        claims.ifPresent(cl -> request.setAttribute(CLAIMS_ATTRIBUTE, cl));
 
         if (user.isEmpty()) {
             return reject(response, HttpServletResponse.SC_UNAUTHORIZED, "Please log in to continue");
@@ -60,6 +76,20 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         request.setAttribute(USER_ATTRIBUTE, user.get());
         return true;
+    }
+
+    private Optional<TokenService.TokenClaims> claims(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return Optional.empty();
+        }
+        return tokenService.verify(header.substring(7).trim());
+    }
+
+    private Optional<CustomerAccount> customer(Optional<TokenService.TokenClaims> claims) {
+        return claims.filter(TokenService.TokenClaims::isCustomer)
+                .flatMap(cl -> customerRepository.findByEmailIgnoreCase(cl.email()))
+                .filter(c -> Boolean.TRUE.equals(c.getActive()));
     }
 
     private boolean reject(HttpServletResponse response, int status, String message) throws IOException {

@@ -27,6 +27,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @EntityGraph(attributePaths = "room")
     List<Booking> findByEmailIgnoreCase(String email);
 
+    @EntityGraph(attributePaths = "room")
+    Optional<Booking> findByTrackingCode(String trackingCode);
+
+    @EntityGraph(attributePaths = "room")
+    List<Booking> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+
     /** Ids of rooms that have a live (pending / confirmed) booking overlapping the dates. */
     @Query("""
            select distinct b.room.id from Booking b

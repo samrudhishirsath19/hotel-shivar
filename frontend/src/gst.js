@@ -37,9 +37,10 @@ export const roomRate = (s, pricePerNight) =>
   !s || !s.enabled ? 0 : Number(pricePerNight) <= Number(s.roomThreshold) ? Number(s.roomRateLow) : Number(s.roomRateHigh);
 
 // Saved order / booking -> its GST figures (null for records saved before GST existed).
+// An offer discount is taken off before GST, so the taxable amount is the charges less the discount.
 export const taxOf = (x, taxableField = "total") =>
   x && x.grandTotal != null
-    ? { taxable: Number(x[taxableField] ?? 0), rate: Number(x.gstRate), cgst: Number(x.cgstAmount), sgst: Number(x.sgstAmount), tax: Number(x.taxAmount), total: Number(x.grandTotal) }
+    ? { gross: Number(x[taxableField] ?? 0), discount: Number(x.discountAmount || 0), taxable: Number(x[taxableField] ?? 0) - Number(x.discountAmount || 0), rate: Number(x.gstRate), cgst: Number(x.cgstAmount), sgst: Number(x.sgstAmount), tax: Number(x.taxAmount), total: Number(x.grandTotal) }
     : null;
 
 // What the guest pays: with GST when it was worked out, otherwise the plain amount.

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import Img from "../components/Img";
 import { apiFetch, imgUrl } from "../api";
@@ -77,12 +78,16 @@ const toCard = (g) => {
 
 export default function Rooms({ onBookNow }) {
   const [rooms, setRooms] = useState(null);
+  const [roomOffer, setRoomOffer] = useState(0); // biggest live room offer %, shown on each card
 
   useEffect(() => {
     // rooms + which of them are booked tonight
     Promise.all([apiFetch("/api/rooms?availableOnly=true"), apiFetch("/api/rooms/occupied").catch(() => [])])
       .then(([list, occupied]) => setRooms(groupRooms(list, occupied).map(toCard)))
       .catch(() => setRooms(fallbackRooms));
+    apiFetch("/api/offers?activeOnly=true")
+      .then((list) => setRoomOffer((list || []).filter((o) => o.appliesTo !== "FOOD").reduce((m, o) => Math.max(m, o.discountPercent || 0), 0)))
+      .catch(() => {});
   }, []);
 
   return (
@@ -93,12 +98,26 @@ export default function Rooms({ onBookNow }) {
         image={u("photo-1582719478250-c89cae4dc85b")}
       />
 
+      {roomOffer > 0 && (
+        <div className="max-w-7xl mx-auto px-4 pt-8">
+          <Link to="/offers" className="flex flex-wrap items-center justify-between gap-2 bg-[#FBF6EC] border border-[#E7D3AC] rounded-xl px-5 py-3 text-[#1F3B2D] hover:bg-[#F7EDD9]">
+            <span>🏷️ <b>Save up to {roomOffer}%</b> on your stay - the best offer is applied automatically when you book.</span>
+            <span className="text-sm font-semibold text-[#B8893C]">View offers →</span>
+          </Link>
+        </div>
+      )}
+
       <section className="max-w-7xl mx-auto px-4 py-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {rooms === null && <p className="text-gray-500 col-span-full text-center">Loading rooms...</p>}
         {rooms && rooms.length === 0 && <p className="text-gray-500 col-span-full text-center">No rooms available right now.</p>}
         {(rooms || []).map((room) => (
           <article key={room.id || room.name} className="bg-white rounded-lg overflow-hidden shadow-sm flex flex-col">
-            <Img src={room.image} alt={room.name} className="h-56 w-full object-cover" />
+            <div className="relative">
+              <Img src={room.image} alt={room.name} className="h-56 w-full object-cover" />
+              {roomOffer > 0 && !room.fullyBooked && (
+                <span className="absolute top-3 left-3 bg-[#B8893C] text-white text-xs font-bold px-2.5 py-1 rounded-md shadow">Up to {roomOffer}% OFF</span>
+              )}
+            </div>
 
             <div className="p-6 flex flex-col flex-1">
               <div className="flex items-baseline justify-between gap-2">

@@ -33,6 +33,10 @@ public class OnlineOrderRequest {
     /** Optional when placing: CASH_ON_DELIVERY, or the online method the customer will pay with next. */
     private com.hotelshivar.backend.entity.enums.PaymentMethod paymentMethod;
 
+    /** Optional offer code for food orders. */
+    @Size(max = 30, message = "Offer code is too long")
+    private String offerCode;
+
     @NotEmpty(message = "Cart is empty")
     @Valid
     private List<Item> items;

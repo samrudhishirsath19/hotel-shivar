@@ -9,6 +9,8 @@ import com.hotelshivar.backend.entity.FoodOrder;
 import com.hotelshivar.backend.entity.OrderLine;
 import com.hotelshivar.backend.entity.enums.OrderType;
 import com.hotelshivar.backend.service.OrderService;
+import com.hotelshivar.backend.entity.CustomerAccount;
+import com.hotelshivar.backend.security.AuthInterceptor;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -46,8 +48,10 @@ public class OrderController {
     }
 
     @PostMapping("/online")
-    public ResponseEntity<FoodOrder> online(@Valid @RequestBody OnlineOrderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.placeOnline(request));
+    public ResponseEntity<FoodOrder> online(@Valid @RequestBody OnlineOrderRequest request,
+            @RequestAttribute(value = AuthInterceptor.CUSTOMER_ATTRIBUTE, required = false) CustomerAccount customer) {
+        // a logged-in website customer gets the order in their account
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.placeOnline(request, customer != null ? customer.getId() : null));
     }
 
     /** Public: the customer pays for their order (identified by its secret tracking code). */

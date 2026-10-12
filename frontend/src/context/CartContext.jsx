@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { apiFetch } from "../api";
+import { customerAuth } from "./CustomerContext";
 
 const CartContext = createContext(null);
 export const useCart = () => useContext(CartContext);
@@ -57,6 +58,7 @@ export function CartProvider({ children }) {
   const placeOnlineOrder = async (details) => {
     const order = await apiFetch("/api/orders/online", {
       method: "POST",
+      headers: customerAuth(), // a logged-in customer: the order goes into their account
       body: JSON.stringify({
         ...details,
         items: cart.map((c) => ({ menuItemId: c.id, quantity: c.qty })),

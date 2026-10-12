@@ -34,4 +34,8 @@ public class BookingRequest {
     private Integer numberOfGuests;
 
     private String specialRequests;
+
+    /** Optional offer code from the Offers page, e.g. MONSOON20. */
+    @Size(max = 30, message = "Offer code is too long")
+    private String offerCode;
 }

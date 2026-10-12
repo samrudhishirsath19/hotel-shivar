@@ -30,4 +30,12 @@ public class BanquetService {
     public List<BanquetEnquiry> getAllEnquiries() {
         return banquetEnquiryRepository.findAll();
     }
+
+    /** Staff: mark an enquiry as handled (or open again). */
+    public BanquetEnquiry setResolved(Long id, boolean resolved) {
+        BanquetEnquiry e = banquetEnquiryRepository.findById(id)
+                .orElseThrow(() -> new com.hotelshivar.backend.exception.ResourceNotFoundException("Enquiry not found with id: " + id));
+        e.setResolved(resolved);
+        return banquetEnquiryRepository.save(e);
+    }
 }

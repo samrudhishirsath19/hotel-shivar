@@ -25,7 +25,13 @@ public class TokenService {
     private static final String HEADER_JSON = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}";
 
     /** What we read back out of a valid token. */
-    public record TokenClaims(String email, String name, String role, long expiresAt) { }
+    /** type = "staff" (dashboard login) or "customer" (website account) - a customer token never opens staff pages. */
+    public record TokenClaims(String email, String name, String role, long expiresAt, String type) {
+        public boolean isCustomer() { return "customer".equals(type); }
+    }
+
+    /** Website customers stay logged in for 30 days. */
+    public static final long CUSTOMER_TOKEN_DAYS = 30;
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final byte[] secret;
@@ -44,13 +50,33 @@ public class TokenService {
         return System.currentTimeMillis() + expiryMillis;
     }
 
+    public long customerExpiryFromNow() {
+        return System.currentTimeMillis() + CUSTOMER_TOKEN_DAYS * 24L * 60L * 60L * 1000L;
+    }
+
+    /** Website customer account login (typ = customer). */
+    public String createCustomerToken(com.hotelshivar.backend.entity.CustomerAccount c, long expiresAt) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("sub", c.getEmail());
+        payload.put("name", c.getName());
+        payload.put("role", "CUSTOMER");
+        payload.put("typ", "customer");
+        payload.put("exp", expiresAt);
+        return signPayload(payload);
+    }
+
     public String createToken(AdminUser user, long expiresAt) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("sub", user.getEmail());
+        payload.put("name", user.getName());
+        payload.put("role", user.getRole());
+        payload.put("typ", "staff");
+        payload.put("exp", expiresAt);
+        return signPayload(payload);
+    }
+
+    private String signPayload(Map<String, Object> payload) {
         try {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("sub", user.getEmail());
-            payload.put("name", user.getName());
-            payload.put("role", user.getRole());
-            payload.put("exp", expiresAt);
 
             String head = b64(HEADER_JSON.getBytes(StandardCharsets.UTF_8));
             String body = b64(mapper.writeValueAsBytes(payload));
@@ -82,7 +108,8 @@ public class TokenService {
                     (String) payload.get("sub"),
                     (String) payload.get("name"),
                     (String) payload.get("role"),
-                    exp));
+                    exp,
+                    payload.get("typ") == null ? "staff" : (String) payload.get("typ")));
         } catch (Exception e) {
             return Optional.empty();
         }

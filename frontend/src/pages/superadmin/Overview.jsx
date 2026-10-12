@@ -27,6 +27,7 @@ export default function Overview() {
   const usesBoard = ["kot", "tables", "online", "billing"].some((id) => canSee(role, id)); // live orders
   const usesBills = role === "BILLING" && canSee(role, "billing");      // today's paid bills
   const usesBookings = role === "RECEPTION" && canSee(role, "reservation");
+  const usesEnquiries = canSee(role, "enquiries"); // website contact / banquet enquiries
 
   // super admin: "graphs" = bar graph + donut (as before), "poll" = one poll-style chart. Remembered in this browser.
   const [view, setView] = useState(() => {
@@ -43,6 +44,7 @@ export default function Overview() {
   const [bills, setBills] = useState(null);       // manager / billing: bills paid today
   const [bookings, setBookings] = useState(null); // reception: room bookings
   const [loadError, setLoadError] = useState("");
+  const [openEnquiries, setOpenEnquiries] = useState(null); // { contact, banquet } not yet marked done
 
   useEffect(() => {
     const load = () => {
@@ -56,11 +58,17 @@ export default function Overview() {
       if (usesBookings) {
         apiFetch("/api/bookings").then(setBookings).catch((e) => setLoadError(e.message));
       }
+      if (usesEnquiries) {
+        const open = (list) => (list || []).filter((x) => !x.resolved).length;
+        Promise.all([apiFetch("/api/contact"), apiFetch("/api/banquet")])
+          .then(([c, b]) => setOpenEnquiries({ contact: open(c), banquet: open(b) }))
+          .catch(() => {});
+      }
     };
     load();
     const t = setInterval(load, 30000);
     return () => clearInterval(t);
-  }, [isSuper, usesBills, usesBookings]);
+  }, [isSuper, usesBills, usesBookings, usesEnquiries]);
 
   // ---- orders (from the live board)
   const tables = board?.tables || [];
@@ -196,6 +204,16 @@ export default function Overview() {
           </div>
         )}
       </div>
+
+      {openEnquiries && openEnquiries.contact + openEnquiries.banquet > 0 && (
+        <Link to={`${base}/enquiries`} className="shrink-0 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 text-amber-900 text-sm px-4 py-3 rounded-lg hover:bg-amber-100">
+          <span>
+            📩 <b>{openEnquiries.contact + openEnquiries.banquet}</b> open enquir{openEnquiries.contact + openEnquiries.banquet === 1 ? "y" : "ies"} from the website
+            ({openEnquiries.contact} contact, {openEnquiries.banquet} banquet)
+          </span>
+          <span className="font-semibold whitespace-nowrap">View →</span>
+        </Link>
+      )}
 
       {error && <p className="shrink-0 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
 

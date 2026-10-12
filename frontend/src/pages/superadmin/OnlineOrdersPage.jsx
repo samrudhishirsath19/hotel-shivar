@@ -105,6 +105,12 @@ function OrderCard({ o, canEdit, canCancelOrders, act }) {
                   <td className="pt-1.5" colSpan="3">Item total ({itemCount} item{itemCount > 1 ? "s" : ""})</td>
                   <td className="pt-1.5 text-right">{inr2(o.total)}</td>
                 </tr>
+                {o.discountAmount > 0 && (
+                  <tr className="text-green-700">
+                    <td colSpan="3">Offer applied: {o.offerTitle || o.offerCode} ({o.offerCode})</td>
+                    <td className="text-right">- {inr2(o.discountAmount)}</td>
+                  </tr>
+                )}
                 <tr className="text-xs text-gray-500">
                   <td colSpan="3">GST {pct(o.gstRate)} (CGST {inr2(o.cgstAmount)} + SGST {inr2(o.sgstAmount)})</td>
                   <td className="text-right">{inr2(o.taxAmount)}</td>

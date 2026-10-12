@@ -28,4 +28,12 @@ public class ContactService {
     public List<ContactMessage> getAllMessages() {
         return contactMessageRepository.findAll();
     }
+
+    /** Staff: mark an enquiry as handled (or open again). */
+    public ContactMessage setResolved(Long id, boolean resolved) {
+        ContactMessage e = contactMessageRepository.findById(id)
+                .orElseThrow(() -> new com.hotelshivar.backend.exception.ResourceNotFoundException("Enquiry not found with id: " + id));
+        e.setResolved(resolved);
+        return contactMessageRepository.save(e);
+    }
 }

@@ -80,7 +80,8 @@ public class ReportService {
             LocalDate day = o.getPaidAt().toLocalDate();
             Agg dayAgg = food.get(day);
             dayAgg.count++;
-            dayAgg.revenue = dayAgg.revenue.add(o.getTotal()); // sales are counted without GST
+            // sales are counted after any offer discount and without GST
+            dayAgg.revenue = dayAgg.revenue.add(o.getTotal().subtract(o.getDiscountAmount() != null ? o.getDiscountAmount() : BigDecimal.ZERO));
             if (o.getTaxAmount() != null) {
                 foodGst = foodGst.add(o.getTaxAmount());
             }
@@ -98,7 +99,7 @@ public class ReportService {
             LocalDate day = b.getCreatedAt().toLocalDate();
             long nights = Math.max(1, ChronoUnit.DAYS.between(b.getCheckIn(), b.getCheckOut()));
             BigDecimal amount = b.getRoomCharges() != null
-                    ? b.getRoomCharges()
+                    ? b.getRoomCharges().subtract(b.getDiscountAmount() != null ? b.getDiscountAmount() : BigDecimal.ZERO)
                     : b.getRoom().getPricePerNight().multiply(BigDecimal.valueOf(nights));
             if (b.getTaxAmount() != null) {
                 roomGst = roomGst.add(b.getTaxAmount());

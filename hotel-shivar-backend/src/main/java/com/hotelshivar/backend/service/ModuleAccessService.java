@@ -119,6 +119,7 @@ public class ModuleAccessService {
                     row = repository.save(StaffPermission.builder().role(role).permission(p)
                             .enabled(p.startsOn(role, hasModule)).build());
                 }
+                row = applyPermissionDefaults(row);
                 if (Boolean.TRUE.equals(row.getEnabled())) {
                     set.add(p);
                 }
@@ -126,6 +127,23 @@ public class ModuleAccessService {
             out.put(role, Collections.unmodifiableSet(set));
         }
         return out;
+    }
+
+    /**
+     * Permission defaults added later. Only applied while the row is still untouched by a super admin
+     * (updatedAt empty), so a choice made on the Module Access page is never overwritten.
+     *   - Manager and Reception can see guest enquiries.
+     */
+    private StaffPermission applyPermissionDefaults(StaffPermission row) {
+        boolean enquiries = row.getPermission() == AppPermission.ENQUIRIES
+                && (Roles.MANAGER.equals(row.getRole()) || Roles.RECEPTION.equals(row.getRole()));
+        if (enquiries && row.getUpdatedAt() == null && !Boolean.TRUE.equals(row.getEnabled())) {
+            row.setEnabled(true);
+            row.setUpdatedAt(LocalDateTime.now());
+            row.setUpdatedBy("System (default changed)");
+            return repository.save(row);
+        }
+        return row;
     }
 
     /** The older whole-module setting per department ("ROLE:MODULE" -> on/off). */

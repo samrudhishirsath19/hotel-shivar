@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PageHeader from "../components/PageHeader";
 import { digits10 } from "../roles";
+import { apiFetch } from "../api";
 
 const u = (id, w = 1600) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
 
@@ -8,14 +9,31 @@ const emptyForm = { name: "", email: "", phone: "", subject: "Room booking", mes
 
 export default function Contact() {
   const [form, setForm] = useState(emptyForm);
+  const [sent, setSent] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.name === "phone" ? digits10(e.target.value) : e.target.value });
 
-  const handleSubmit = (e) => {
+  // saved on the server - staff see it on the dashboard's Enquiries page
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert(`Thank you, ${form.name}! We've received your message and will reply within 24 hours.`);
-    setForm(emptyForm);
+    setError("");
+    setSent("");
+    setBusy(true);
+    try {
+      await apiFetch("/api/contact", {
+        method: "POST",
+        body: JSON.stringify({ ...form, name: form.name.trim(), email: form.email.trim(), message: form.message.trim() }),
+      });
+      setSent(`Thank you, ${form.name.trim()}! We've received your message and will reply within 24 hours.`);
+      setForm(emptyForm);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const inputClass =
@@ -33,6 +51,8 @@ export default function Contact() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="lg:col-span-3 bg-white rounded-lg shadow-sm p-6 md:p-8 space-y-4">
           <h2 className="font-serif text-2xl text-[#1F3B2D] mb-2">Send a message</h2>
+          {sent && <p role="status" className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">{sent}</p>}
+          {error && <p role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -68,8 +88,8 @@ export default function Contact() {
             <textarea id="c-message" name="message" rows={5} required value={form.message} onChange={handleChange} className={inputClass} />
           </div>
 
-          <button type="submit" className="bg-[#1F3B2D] hover:bg-[#2C5240] text-white font-medium px-6 py-3 rounded-md">
-            Send message
+          <button type="submit" disabled={busy} className="bg-[#1F3B2D] hover:bg-[#2C5240] text-white font-medium px-6 py-3 rounded-md disabled:opacity-60">
+            {busy ? "Sending..." : "Send message"}
           </button>
         </form>
 

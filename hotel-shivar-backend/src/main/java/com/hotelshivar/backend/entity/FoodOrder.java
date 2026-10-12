@@ -138,7 +138,7 @@ public class FoodOrder {
 
     /** What is charged: the amount with GST, or (old records without GST) the plain amount. Sent to the screens as "amountPayable". */
     public BigDecimal getAmountPayable() {
-        return grandTotal != null ? grandTotal : total;
+        return grandTotal != null ? grandTotal : total.subtract(discountAmount != null ? discountAmount : BigDecimal.ZERO);
     }
 
     public void applyTax(com.hotelshivar.backend.service.GstService.Tax t) {
@@ -148,4 +148,21 @@ public class FoodOrder {
         this.taxAmount = t.tax();
         this.grandTotal = t.total();
     }
+
+    // ------------------------------------------------------------------ offer and customer account
+
+    /** Offer code used (upper case), or null. */
+    @Column(length = 30)
+    private String offerCode;
+
+    /** Name of the offer at the time it was applied (shown on the bill). */
+    @Column(length = 120)
+    private String offerTitle;
+
+    /** Discount from the offer, taken off before GST. */
+    @Column(precision = 12, scale = 2)
+    private BigDecimal discountAmount;
+
+    /** Customer account that made it (null for guests). */
+    private Long customerId;
 }

@@ -6,6 +6,7 @@ import { fmtDateTime } from "../dates";
 import { PAYMENT_STATUS, methodLabel, onlineStatusOf, onlineLabel } from "../orderStatus";
 import OrderStepper from "../components/OrderStepper";
 import { taxOf, payable, inr2, pct } from "../gst";
+import OfferApplied from "../components/OfferApplied";
 
 const PAY_OPTIONS = [
   { id: "UPI", label: "UPI", note: "GPay, PhonePe, Paytm, BHIM" },
@@ -152,6 +153,8 @@ export default function OrderTrack() {
           </p>
         </section>
 
+        <OfferApplied x={o} />
+
         {needsPayment && <PaymentPanel data={data} code={code} onDone={setData} />}
 
         <section className="bg-white rounded-2xl border p-5">
@@ -174,11 +177,18 @@ export default function OrderTrack() {
               ))}
             </tbody>
           </table>
-          {taxOf(o) && taxOf(o).tax > 0 && (
+          {((taxOf(o) && taxOf(o).tax > 0) || o.discountAmount > 0) && (
             <div className="mt-2 pt-2 border-t text-sm space-y-0.5">
               <div className="flex justify-between text-gray-600"><span>Item total</span><span>{inr2(o.total)}</span></div>
-              <div className="flex justify-between text-gray-600"><span>CGST @ {pct(o.gstRate / 2)}</span><span>{inr2(o.cgstAmount)}</span></div>
-              <div className="flex justify-between text-gray-600"><span>SGST @ {pct(o.gstRate / 2)}</span><span>{inr2(o.sgstAmount)}</span></div>
+              {o.discountAmount > 0 && (
+                <div className="flex justify-between text-green-700"><span>Offer discount{o.offerTitle ? ` - ${o.offerTitle}` : ""} ({o.offerCode})</span><span>- {inr2(o.discountAmount)}</span></div>
+              )}
+              {taxOf(o) && taxOf(o).tax > 0 && (
+                <>
+                  <div className="flex justify-between text-gray-600"><span>CGST @ {pct(o.gstRate / 2)}</span><span>{inr2(o.cgstAmount)}</span></div>
+                  <div className="flex justify-between text-gray-600"><span>SGST @ {pct(o.gstRate / 2)}</span><span>{inr2(o.sgstAmount)}</span></div>
+                </>
+              )}
             </div>
           )}
           <div className="mt-2 pt-2 border-t-2 border-gray-800 flex justify-between font-bold">
@@ -208,7 +218,7 @@ export default function OrderTrack() {
           )}
         </section>
 
-        <p className="text-xs text-gray-500 text-center">Keep this page's link to follow your order. It updates automatically.</p>
+        <p className="text-xs text-gray-500 text-center">Keep this page's link to follow your order. It updates automatically. You can also see it in <Link to="/account" className="underline">My Account</Link>.</p>
         <p className="text-center"><Link to="/restaurant" className="text-sm font-semibold text-[#B8893C]">← Order more food</Link></p>
       </div>
     </div>
