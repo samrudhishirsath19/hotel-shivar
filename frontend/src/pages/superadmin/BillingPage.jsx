@@ -8,13 +8,92 @@ import { PageTitle } from "./ui";
 import { Ticket, Toast, PaymentBadge, orderTitle, orderKind, isInBilling } from "./Ticket";
 import { methodLabel } from "../../orderStatus";
 import { payable, inr2 } from "../../gst";
+import { isRestaurantOffer, bestOffer, offerRules } from "../../offers";
 
 const DESK_METHODS = ["CASH", "UPI", "CARD", "NET_BANKING", "WALLET"];
 import { printBill } from "../../printBill";
 
+const QUICK = [5, 10, 15, 20, 25];
+
+// Discount on one restaurant bill, before it is printed: pick an offer, or give any % (with a reason).
+function DiscountPanel({ order: o, offers, suggested, onOffer, onPercent }) {
+  const [mode, setMode] = useState(offers.length ? "offer" : "percent");
+  const [pick, setPick] = useState(null);
+  const [percent, setPercent] = useState("");
+  const [reason, setReason] = useState("");
+
+  if (Number(o.discountAmount) > 0) {
+    return (
+      <div className="mb-2 flex items-start justify-between gap-2 rounded-lg border border-dashed border-green-600 bg-green-50 px-2 py-1.5 text-xs">
+        <span className="text-green-800">
+          🏷️ <b>{o.offerCode ? "Offer applied:" : "Discount given:"}</b> {o.offerCode ? `${o.offerTitle || o.offerCode} (${o.offerCode})` : o.offerTitle}
+          {" "}· saved {inr2(o.discountAmount)}
+          {o.discountBy && <span className="block text-green-700">by {o.discountBy}{o.discountReason ? ` · ${o.discountReason}` : ""}</span>}
+        </span>
+        <button onClick={() => (o.offerCode ? onOffer("") : onPercent(0, ""))} className="text-red-600 font-semibold shrink-0">Remove</button>
+      </div>
+    );
+  }
+
+  const code = pick ?? suggested?.code ?? "";
+  const pct = Number(percent);
+  const pctOk = Number.isInteger(pct) && pct >= 1 && pct <= 100;
+  const preview = pctOk ? (Number(o.total) * pct) / 100 : 0;
+  const tab = (id, label) => (
+    <button type="button" onClick={() => setMode(id)}
+      className={`px-2 py-1 rounded-md ${mode === id ? "bg-white shadow text-gray-900" : "text-gray-500"}`}>{label}</button>
+  );
+
+  return (
+    <div className="mb-2 rounded-lg border bg-gray-50 p-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold text-gray-700">Discount (optional)</span>
+        <div className="flex gap-1 bg-gray-200 rounded-lg p-0.5 text-[11px] font-semibold">
+          {offers.length > 0 && tab("offer", "Offer")}
+          {tab("percent", "Discount %")}
+        </div>
+      </div>
+      {mode === "offer" && offers.length > 0 ? (
+        <div className="mt-2 flex gap-2">
+          <select value={code} onChange={(e) => setPick(e.target.value)} aria-label="Offer"
+            className="flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-xs bg-white">
+            <option value="">Choose an offer</option>
+            {offers.map((f) => (
+              <option key={f.id} value={f.code}>
+                {f.code} - {f.discountPercent}% off{suggested?.code === f.code ? " ★ best" : ""} · {offerRules(f).slice(2).join(", ") || "any bill"}
+              </option>
+            ))}
+          </select>
+          <button disabled={!code} onClick={() => onOffer(code)}
+            className="px-3 py-1.5 rounded-lg bg-[#B8893C] text-white text-xs font-bold disabled:opacity-40">Apply</button>
+        </div>
+      ) : (
+        <div className="mt-2 space-y-2">
+          <div className="flex flex-wrap gap-1">
+            {QUICK.map((q) => (
+              <button key={q} type="button" onClick={() => setPercent(String(q))}
+                className={`px-2 py-1 rounded-md border text-[11px] font-bold ${pct === q ? "bg-[#1F3B2D] text-white border-[#1F3B2D]" : "bg-white"}`}>{q}%</button>
+            ))}
+            <input value={percent} onChange={(e) => setPercent(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} inputMode="numeric"
+              aria-label="Discount percent" placeholder="Other %" className="w-16 border rounded-md px-2 py-1 text-[11px]" />
+          </div>
+          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200}
+            placeholder="Reason (e.g. regular guest, birthday, complaint)" className="w-full border rounded-lg px-2 py-1.5 text-xs" />
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] text-gray-500">{pctOk ? `${pct}% of ${inr2(o.total)} = ${inr2(preview)} off (before GST)` : percent ? "Enter 1 to 100" : ""}</span>
+            <button disabled={!pctOk} onClick={() => onPercent(pct, reason.trim())}
+              className="px-3 py-1.5 rounded-lg bg-[#B8893C] text-white text-xs font-bold disabled:opacity-40">Give {pctOk ? `${pct}%` : "discount"}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BillingPage() {
   const { user } = useAuth();
   const canPay = can(user?.role, "BILLING_PAY");
+  const canDiscount = can(user?.role, "BILLING_DISCOUNT"); // offers / discount % on restaurant bills
   const { board, error: boardError, msg, run } = useBoard();
   const [from, setFrom] = useState(ymd(new Date()));
   const [to, setTo] = useState(ymd(new Date()));
@@ -23,6 +102,40 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(null);
   const [tick, setTick] = useState(0); // bump to reload the paid list
+  const [offers, setOffers] = useState([]); // live restaurant offers, for "Apply offer"
+
+  useEffect(() => {
+    if (!canDiscount) return;
+    const today = ymd(new Date());
+    apiFetch("/api/offers?activeOnly=true")
+      .then((d) => setOffers((d || []).filter((o) => o.code && isRestaurantOffer(o) && (!o.validFrom || o.validFrom <= today)
+        && !(o.usageLimit && (o.usedCount || 0) >= o.usageLimit))))
+      .catch(() => setOffers([]));
+  }, [canDiscount]);
+
+  // the best restaurant offer for each unpaid bill (pre-selected in its list): orderId -> code
+  const [suggested, setSuggested] = useState({});
+  const billKey = (board?.tables || []).map((t) => t.order).concat(board?.rooms || [])
+    .filter((o) => o && isInBilling(o) && !o.offerCode).map((o) => `${o.id}:${o.total}`).join(",");
+  useEffect(() => {
+    if (!canDiscount || !offers.length || !billKey) return;
+    let alive = true;
+    billKey.split(",").forEach((k) => {
+      const [id, total] = k.split(":");
+      bestOffer({ kind: "RESTAURANT", amount: total })
+        .then((r) => { if (alive && r.valid) setSuggested((s) => ({ ...s, [id]: r })); })
+        .catch(() => {});
+    });
+    return () => { alive = false; };
+  }, [canDiscount, offers.length, billKey]);
+
+  // apply (or with "" remove) an offer on a bill before it is printed; GST is worked out again by the server
+  const applyOffer = (o, code) =>
+    run(o.id, "offer", code ? `🏷️ Offer ${code} applied to ${orderTitle(o)}` : `Discount removed from ${orderTitle(o)}`, { code });
+
+  // any discount % decided at the desk (0 removes it)
+  const applyDiscount = (o, percent, reason) =>
+    run(o.id, "discount", percent ? `🏷️ ${percent}% discount given on ${orderTitle(o)}` : `Discount removed from ${orderTitle(o)}`, { percent, reason });
 
   useEffect(() => {
     if (!from || !to || from > to) return;
@@ -87,6 +200,15 @@ export default function BillingPage() {
               <input value={nameOf(o)} onChange={(e) => setPay(o.id, { customerName: e.target.value })} maxLength={100}
                 aria-label="Customer name" placeholder="Customer name (printed on the bill)"
                 className="w-full mb-2 border rounded-lg px-2 py-1.5 text-xs" />
+              {o.orderType !== "ONLINE" && canDiscount && (
+                <DiscountPanel
+                  order={o}
+                  offers={offers}
+                  suggested={suggested[o.id]}
+                  onOffer={(code) => applyOffer(o, code)}
+                  onPercent={(percent, reason) => applyDiscount(o, percent, reason)}
+                />
+              )}
               <div className="flex gap-2">
                 <select value={payOf(o.id).method} onChange={(e) => setPay(o.id, { method: e.target.value })} aria-label="Payment method"
                   className="border rounded-lg px-2 py-1.5 text-xs bg-white">
@@ -145,6 +267,11 @@ export default function BillingPage() {
                   <td className="p-3 text-right">
                     <div className="font-bold">{inr2(payable(b))}</div>
                     {b.taxAmount > 0 && <div className="text-[11px] text-gray-500">incl. GST {inr2(b.taxAmount)}</div>}
+                    {b.discountAmount > 0 && (
+                      <div className="text-[11px] text-green-700">
+                        🏷️ {b.offerCode ? `offer ${b.offerCode}` : b.offerTitle} - {inr2(b.discountAmount)}{b.discountBy ? ` · by ${b.discountBy}` : ""}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3 text-right">
                     <button onClick={(e) => { e.stopPropagation(); printBill(b); }} className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold whitespace-nowrap">🖨️ Print Bill</button>

@@ -60,6 +60,32 @@ public class StaffOrderController {
         return orderService.sendToBilling(id);
     }
 
+    /** Billing: apply a restaurant offer to the bill before printing ({"code": "..."}; empty code removes it). */
+    @PostMapping("/{id}/offer")
+    public FoodOrder offer(@PathVariable Long id, @RequestBody(required = false) java.util.Map<String, String> body) {
+        return orderService.applyBillOffer(id, body != null ? body.get("code") : null);
+    }
+
+    /** Billing: give any discount % on the bill ({"percent": 10, "reason": "..."}; 0 removes it). */
+    @PostMapping("/{id}/discount")
+    public FoodOrder discount(@PathVariable Long id, @RequestBody(required = false) java.util.Map<String, Object> body,
+                              @RequestAttribute(com.hotelshivar.backend.security.AuthInterceptor.USER_ATTRIBUTE)
+                              com.hotelshivar.backend.entity.AdminUser user) {
+        Integer percent = null;
+        Object p = body != null ? body.get("percent") : null;
+        if (p instanceof Number n) {
+            percent = n.intValue();
+        } else if (p instanceof String s && !s.isBlank()) {
+            try {
+                percent = Integer.valueOf(s.trim());
+            } catch (NumberFormatException e) {
+                throw new com.hotelshivar.backend.exception.BadRequestException("Discount must be a whole number");
+            }
+        }
+        Object reason = body != null ? body.get("reason") : null;
+        return orderService.applyManualDiscount(id, percent, reason != null ? reason.toString() : null, user.getName());
+    }
+
     /** Billing: bill paid. Frees the table / closes the order and counts it as a sale. */
     @PostMapping("/{id}/paid")
     public FoodOrder paid(@PathVariable Long id, @Valid @RequestBody(required = false) BillPaymentRequest payment) {

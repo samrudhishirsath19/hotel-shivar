@@ -169,7 +169,7 @@ public class OrderService {
         order.setCustomerId(customerId);
         // offer code: checked against the food total, taken off before GST
         // (or else the best live food offer, applied automatically)
-        OfferService.Quote offer = offerService.codeOrBest(r.getOfferCode(), false, computeTotal(order), 0, null);
+        OfferService.Quote offer = offerService.codeOrBest(r.getOfferCode(), OfferService.Channel.ONLINE, computeTotal(order), 0, null);
         if (offer != null) {
             order.setOfferCode(offer.offer().getCode());
             order.setOfferTitle(offer.offer().getTitle());
@@ -383,6 +383,74 @@ public class OrderService {
         return orderRepository.save(o);
     }
 
+    /**
+     * Billing desk: apply a restaurant offer to a bill before it is printed / paid (blank code = remove it).
+     * The discount comes off the item total and GST is worked out again on the amount after the discount.
+     * Online orders already got their offer when they were placed, so they cannot be changed here.
+     */
+    @Transactional
+    public FoodOrder applyBillOffer(Long id, String code) {
+        FoodOrder o = getRunning(id);
+        if (o.getKitchenStatus() != KitchenStatus.SENT_TO_BILLING) {
+            throw new BadRequestException("An offer can be applied once the order is sent to billing");
+        }
+        if (o.getOrderType() == OrderType.ONLINE) {
+            throw new BadRequestException("Online orders get their offer when they are placed");
+        }
+        clearDiscount(o);
+        if (code != null && !code.isBlank()) {
+            OfferService.Quote q = offerService.require(code, OfferService.Channel.RESTAURANT, computeTotal(o), 0, null);
+            o.setOfferCode(q.offer().getCode());
+            o.setOfferTitle(q.offer().getTitle());
+            o.setDiscountAmount(q.discount());
+        }
+        applyTotals(o);
+        return orderRepository.save(o);
+    }
+
+    /**
+     * Billing desk / super admin: give any discount % on a restaurant bill before it is printed
+     * (0 or empty removes it). Replaces an applied offer. Saved with who gave it and why; GST is worked
+     * out again on the amount after the discount.
+     */
+    @Transactional
+    public FoodOrder applyManualDiscount(Long id, Integer percent, String reason, String by) {
+        FoodOrder o = getRunning(id);
+        if (o.getKitchenStatus() != KitchenStatus.SENT_TO_BILLING) {
+            throw new BadRequestException("A discount can be given once the order is sent to billing");
+        }
+        if (o.getOrderType() == OrderType.ONLINE) {
+            throw new BadRequestException("Online orders get their offer when they are placed");
+        }
+        if (percent != null && (percent < 0 || percent > 100)) {
+            throw new BadRequestException("Discount must be between 1% and 100%");
+        }
+        clearDiscount(o);
+        if (percent != null && percent > 0) {
+            BigDecimal total = computeTotal(o);
+            String why = reason == null ? "" : reason.trim().replaceAll(" +", " ");
+            if (why.length() > 200) {
+                why = why.substring(0, 200);
+            }
+            o.setManualDiscountPercent(percent);
+            o.setDiscountAmount(total.multiply(BigDecimal.valueOf(percent)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP));
+            o.setOfferTitle("Discount " + percent + "%");
+            o.setDiscountReason(why.isEmpty() ? null : why);
+            o.setDiscountBy(by);
+        }
+        applyTotals(o);
+        return orderRepository.save(o);
+    }
+
+    private void clearDiscount(FoodOrder o) {
+        o.setOfferCode(null);
+        o.setOfferTitle(null);
+        o.setDiscountAmount(null);
+        o.setManualDiscountPercent(null);
+        o.setDiscountReason(null);
+        o.setDiscountBy(null);
+    }
+
     /** Billing: bill paid - the order now counts as a sale (for the day it was paid). */
     @Transactional
     public FoodOrder markPaid(Long id, BillPaymentRequest payment) {
@@ -397,6 +465,13 @@ public class OrderService {
         paymentService.recordCounterPayment(o, method, payment != null ? payment.getReference() : null);
         if (payment != null && payment.getCustomerName() != null && !payment.getCustomerName().isBlank()) {
             o.setCustomerName(payment.getCustomerName().trim().replaceAll(" +", " "));
+        }
+        if (o.getOfferCode() != null && o.getOrderType() != OrderType.ONLINE) {
+            // the offer applied at the billing desk: checked again and counted once, when the bill is paid
+            OfferService.Quote q = offerService.require(o.getOfferCode(), OfferService.Channel.RESTAURANT, computeTotal(o), 0, null);
+            o.setDiscountAmount(q.discount());
+            applyTotals(o);
+            offerService.recordUse(q.offer());
         }
         o.setStatus(OrderStatus.PAID);
         o.setPaidAt(LocalDateTime.now());

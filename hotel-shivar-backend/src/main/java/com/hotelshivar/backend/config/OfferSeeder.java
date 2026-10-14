@@ -26,6 +26,7 @@ public class OfferSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (offerRepository.count() > 0) {
+            upgradeOlderOffers();
             return;
         }
         String u = "https://images.unsplash.com/";
@@ -45,5 +46,59 @@ public class OfferSeeder implements CommandLineRunner {
                         .description("20% off for families. Kids under 8 eat free at Shivar Kitchen.")
                         .imageUrl(u + "photo-1566665797739-1674de7a421a" + q).build()));
         log.info("Sample offers added");
+    }
+
+    /**
+     * Offers saved before codes existed have no code / "applies to", so they could never be used. Give each one
+     * a code made from its title and percentage (e.g. EARLYBIRD15) and mark it for room bookings. Only empty
+     * fields are filled, so nothing set on the Offers page is changed.
+     */
+    private void upgradeOlderOffers() {
+        for (Offer o : offerRepository.findAll()) {
+            boolean changed = false;
+            if (o.getCode() == null || o.getCode().isBlank()) {
+                o.setCode(uniqueCode(o));
+                changed = true;
+            }
+            if (o.getAppliesTo() == null) {
+                o.setAppliesTo(Offer.AppliesTo.ROOMS);
+                changed = true;
+            }
+            if (o.getUsedCount() == null) {
+                o.setUsedCount(0);
+                changed = true;
+            }
+            if (o.getWeekdaysOnly() == null) {
+                o.setWeekdaysOnly(false);
+                changed = true;
+            }
+            if (o.getWeekendsOnly() == null) {
+                o.setWeekendsOnly(false);
+                changed = true;
+            }
+            if (o.getDiscountPercent() == null) {
+                o.setDiscountPercent(10);
+                changed = true;
+            }
+            if (changed) {
+                offerRepository.save(o);
+                log.info("Offer \"{}\" can now be used with code {}", o.getTitle(), o.getCode());
+            }
+        }
+    }
+
+    private String uniqueCode(Offer o) {
+        String[] words = (o.getTitle() == null ? "OFFER" : o.getTitle()).toUpperCase(java.util.Locale.ROOT)
+                .replaceAll("[^A-Z0-9 ]", "").trim().split(" +");
+        String base = words.length > 1 ? words[0] + words[1] : words[0];
+        if (base.length() < 3) {
+            base = "OFFER";
+        }
+        base = base.substring(0, Math.min(base.length(), 14)) + (o.getDiscountPercent() != null ? o.getDiscountPercent() : "");
+        String code = base;
+        for (int i = 2; offerRepository.findByCodeIgnoreCase(code).isPresent(); i++) {
+            code = base.substring(0, Math.min(base.length(), 17)) + i;
+        }
+        return code;
     }
 }

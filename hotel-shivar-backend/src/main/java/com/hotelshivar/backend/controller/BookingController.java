@@ -48,6 +48,12 @@ public class BookingController {
         return bookingService.track(code);
     }
 
+    /** Reception: apply an offer to this booking before printing the invoice ({"code": ""} removes it). */
+    @PatchMapping("/{id}/offer")
+    public Booking offer(@PathVariable Long id, @RequestBody(required = false) java.util.Map<String, String> body) {
+        return bookingService.applyOffer(id, body != null ? body.get("code") : null);
+    }
+
     @PatchMapping("/{id}/status")
     public Booking updateStatus(@PathVariable Long id, @RequestParam BookingStatus status) {
         return bookingService.updateStatus(id, status);

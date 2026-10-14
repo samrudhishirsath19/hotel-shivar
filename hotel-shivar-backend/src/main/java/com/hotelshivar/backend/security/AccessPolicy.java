@@ -106,6 +106,8 @@ public class AccessPolicy {
         if (post && path.matches("/api/admin/orders/\\d+/cancel")) return Rule.any(ORDER_CANCEL);
         if (post && path.matches("/api/admin/orders/\\d+/accept")) return Rule.any(ONLINE_MANAGE);
         if (post && path.matches("/api/admin/orders/\\d+/paid")) return Rule.any(BILLING_PAY);
+        if (post && path.matches("/api/admin/orders/\\d+/offer")) return Rule.any(BILLING_DISCOUNT);
+        if (post && path.matches("/api/admin/orders/\\d+/discount")) return Rule.any(BILLING_DISCOUNT);
         if (get && path.matches("/api/admin/orders/\\d+/payments")) return Rule.any(ONLINE_VIEW, BILLING_VIEW, KOT_VIEW);
         // live board: KOT, tables, online orders and billing all read it
         if (get && path.equals("/api/admin/orders/board")) return Rule.any(KOT_VIEW, TABLE_VIEW, ONLINE_VIEW, BILLING_VIEW);

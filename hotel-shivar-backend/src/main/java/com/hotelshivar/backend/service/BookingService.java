@@ -91,7 +91,7 @@ public class BookingService {
         // checked against the room charges and taken off before GST
         int nights = (int) Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(request.getCheckIn(), request.getCheckOut()));
         java.math.BigDecimal charges = room.getPricePerNight().multiply(java.math.BigDecimal.valueOf(nights));
-        OfferService.Quote offer = offerService.codeOrBest(request.getOfferCode(), true, charges, nights, request.getCheckIn());
+        OfferService.Quote offer = offerService.codeOrBest(request.getOfferCode(), OfferService.Channel.ROOM, charges, nights, request.getCheckIn());
         if (offer != null) {
             booking.setOfferCode(offer.offer().getCode());
             booking.setOfferTitle(offer.offer().getTitle());
@@ -104,6 +104,39 @@ public class BookingService {
             offerService.recordUse(offer.offer());
         }
         return saved;
+    }
+
+    /**
+     * Reception desk: apply an offer to a booking (blank code = remove it). The room GST is worked out again
+     * on the amount after the discount. A cancelled booking cannot be changed.
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public Booking applyOffer(Long id, String code) {
+        Booking b = getBookingById(id);
+        if (b.getStatus() == BookingStatus.CANCELLED) {
+            throw new com.hotelshivar.backend.exception.BadRequestException("This booking is cancelled");
+        }
+        String before = b.getOfferCode();
+        int nights = (int) Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(b.getCheckIn(), b.getCheckOut()));
+        java.math.BigDecimal charges = b.getRoom().getPricePerNight().multiply(java.math.BigDecimal.valueOf(nights));
+        OfferService.Quote q = null;
+        if (code == null || code.isBlank()) {
+            b.setOfferCode(null);
+            b.setOfferTitle(null);
+            b.setDiscountAmount(null);
+        } else {
+            q = offerService.requireForBooking(code, charges, nights, b.getCheckIn(),
+                    b.getCreatedAt() != null ? b.getCreatedAt().toLocalDate() : null);
+            b.setOfferCode(q.offer().getCode());
+            b.setOfferTitle(q.offer().getTitle());
+            b.setDiscountAmount(q.discount());
+        }
+        applyRoomTax(b);
+        bookingRepository.save(b);
+        if (q != null && !q.offer().getCode().equals(before)) {
+            offerService.recordUse(q.offer());
+        }
+        return getBookingById(id);
     }
 
     public Booking updateStatus(Long id, BookingStatus status) {

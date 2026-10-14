@@ -155,6 +155,15 @@ public class FoodOrder {
     @Column(length = 30)
     private String offerCode;
 
+    /** Discount % typed at the billing desk (no offer code), who gave it and why. */
+    private Integer manualDiscountPercent;
+
+    @Column(length = 100)
+    private String discountBy;
+
+    @Column(length = 200)
+    private String discountReason;
+
     /** Name of the offer at the time it was applied (shown on the bill). */
     @Column(length = 120)
     private String offerTitle;

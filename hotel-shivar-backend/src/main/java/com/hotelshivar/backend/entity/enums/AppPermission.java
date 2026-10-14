@@ -46,6 +46,7 @@ public enum AppPermission {
     // ---- Billing
     BILLING_VIEW(AppModule.BILLING, "Billing", "Billing page: bills sent to billing and paid bills, print bills"),
     BILLING_PAY(AppModule.BILLING, "Take payment", "Mark bills paid (cash / UPI / card ...)"),
+    BILLING_DISCOUNT(AppModule.BILLING, "Give discount", "Give a discount % on a restaurant bill before it is printed (offers or any %)"),
 
     // ---- Inventory
     INVENTORY_VIEW(AppModule.INVENTORY, "View stock", "Inventory page: stock in hand and low-stock items"),

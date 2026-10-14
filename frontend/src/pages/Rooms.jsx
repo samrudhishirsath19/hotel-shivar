@@ -86,7 +86,7 @@ export default function Rooms({ onBookNow }) {
       .then(([list, occupied]) => setRooms(groupRooms(list, occupied).map(toCard)))
       .catch(() => setRooms(fallbackRooms));
     apiFetch("/api/offers?activeOnly=true")
-      .then((list) => setRoomOffer((list || []).filter((o) => o.appliesTo !== "FOOD").reduce((m, o) => Math.max(m, o.discountPercent || 0), 0)))
+      .then((list) => setRoomOffer((list || []).filter((o) => o.code && ["ROOMS", "ALL"].includes(o.appliesTo || "ROOMS")).reduce((m, o) => Math.max(m, o.discountPercent || 0), 0)))
       .catch(() => {});
   }, []);
 

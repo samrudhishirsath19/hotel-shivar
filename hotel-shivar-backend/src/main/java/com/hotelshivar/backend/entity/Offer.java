@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 /**
  * A promotion shown on the Offers page. Customers enter its code when they book a room or place an online
@@ -21,8 +22,17 @@ import java.time.LocalDate;
 @Builder
 public class Offer {
 
-    /** What an offer can be used on. */
-    public enum AppliesTo { ROOMS, FOOD, ALL }
+    /**
+     * What an offer can be used on. FOOD = restaurant bills and online orders, RESTAURANT = restaurant bills only
+     * (dine-in / room service, applied at the billing desk), ONLINE = online food orders only, ALL = everything.
+     */
+    public enum AppliesTo {
+        ROOMS, FOOD, ALL, RESTAURANT, ONLINE;
+
+        public boolean rooms() { return this == ROOMS || this == ALL; }
+        public boolean restaurant() { return this == FOOD || this == ALL || this == RESTAURANT; }
+        public boolean online() { return this == FOOD || this == ALL || this == ONLINE; }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -54,6 +64,17 @@ public class Offer {
     /** Rooms: only for check-ins from Monday to Thursday. */
     @Builder.Default
     private Boolean weekdaysOnly = false;
+
+    /** Only Friday to Sunday (rooms: check-in day; food: the day of the bill / order). */
+    @Builder.Default
+    private Boolean weekendsOnly = false;
+
+    /** Rooms: booking must be made at least this many days before check-in (early bird). */
+    private Integer minDaysAhead;
+
+    /** Food: only between these times of day (e.g. lunch 12:00-15:00, happy hours). Both optional. */
+    private LocalTime timeFrom;
+    private LocalTime timeTo;
 
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "varchar(10)")

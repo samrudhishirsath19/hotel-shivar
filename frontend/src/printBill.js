@@ -83,7 +83,9 @@ function totalRows(t, amount, src) {
   // offer discount comes off before GST
   const offer = t.discount > 0
     ? `<tr class="sum"><td colspan="3">Gross amount</td><td class="n">${rs2(t.gross)}</td></tr>
-       <tr class="sum"><td colspan="3">Less: offer applied - ${esc(src?.offerTitle || "Offer")}${src?.offerCode ? " (" + esc(src.offerCode) + ")" : ""}</td><td class="n">- ${rs2(t.discount)}</td></tr>`
+       <tr class="sum"><td colspan="3">${src?.offerCode
+         ? `Less: offer applied - ${esc(src.offerTitle || "Offer")} (${esc(src.offerCode)})`
+         : `Less: ${esc(src?.offerTitle || "Discount")}${src?.discountReason ? " - " + esc(src.discountReason) : ""}`}</td><td class="n">- ${rs2(t.discount)}</td></tr>`
     : "";
   return `
     ${offer}

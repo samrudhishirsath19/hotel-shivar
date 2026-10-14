@@ -44,6 +44,15 @@ public class OfferRequest {
 
     private Boolean weekdaysOnly;
 
+    private Boolean weekendsOnly;
+
+    @Min(value = 1, message = "Days before check-in must be at least 1")
+    @Max(value = 365, message = "Days before check-in is too large")
+    private Integer minDaysAhead;
+
+    private java.time.LocalTime timeFrom;
+    private java.time.LocalTime timeTo;
+
     @NotNull(message = "Choose where the offer applies")
     private Offer.AppliesTo appliesTo;
 

@@ -33,7 +33,7 @@ public class OfferController {
                                               @RequestParam(defaultValue = "1") int nights,
                                               @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(
                                                       iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkIn) {
-        return toMap(offerService.quote(code, !"FOOD".equalsIgnoreCase(kind), amount, nights, checkIn));
+        return toMap(offerService.quote(code, OfferService.Channel.of(kind), amount, nights, checkIn));
     }
 
     /** Public: the offer applied automatically to this bill when no code is typed (valid=false if none fits). */
@@ -43,7 +43,7 @@ public class OfferController {
                                              @RequestParam(defaultValue = "1") int nights,
                                              @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(
                                                      iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkIn) {
-        return toMap(offerService.best(!"FOOD".equalsIgnoreCase(kind), amount, nights, checkIn));
+        return toMap(offerService.best(OfferService.Channel.of(kind), amount, nights, checkIn));
     }
 
     private static java.util.Map<String, Object> toMap(OfferService.Quote q) {

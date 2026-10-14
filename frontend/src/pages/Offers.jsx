@@ -3,13 +3,13 @@ import { Link } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import Img from "../components/Img";
 import { apiFetch } from "../api";
-import { offerRules, offerImage } from "../offers";
+import { offerRules, offerImage, appliesTag, isRoomOffer, isFoodOffer, isOnlineOffer } from "../offers";
 
 const u = (id, w = 800) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
 
-const FILTERS = [["ALL", "All offers"], ["ROOMS", "Room stays"], ["FOOD", "Food orders"]];
-const forRooms = (o) => o.appliesTo !== "FOOD";
-const forFood = (o) => o.appliesTo !== "ROOMS";
+const FILTERS = [["ALL", "All offers"], ["ROOMS", "Room stays"], ["FOOD", "Restaurant & food"]];
+const forRooms = isRoomOffer;
+const forFood = isFoodOffer;
 
 // days left until the offer ends (null = no end date)
 const daysLeft = (o) => {
@@ -43,11 +43,10 @@ function CodeChip({ code, copied, onCopy }) {
 
 function Cta({ o, onBookNow, big = false }) {
   const cls = `bg-[#1F3B2D] hover:bg-[#2C5240] text-white font-semibold rounded-md ${big ? "px-6 py-3" : "text-sm px-4 py-2"}`;
-  return forRooms(o) ? (
-    <button type="button" onClick={() => onBookNow?.("", o.code || "")} className={cls}>Book a room</button>
-  ) : (
-    <Link to="/restaurant" className={cls}>Order food</Link>
-  );
+  if (forRooms(o)) return <button type="button" onClick={() => onBookNow?.("", o.code || "")} className={cls}>Book a room</button>;
+  if (isOnlineOffer(o)) return <Link to="/restaurant" className={cls}>Order food</Link>;
+  // restaurant only: shown at the billing desk
+  return <Link to="/restaurant" className={cls}>View menu</Link>;
 }
 
 // Offers from the dashboard (super admin -> Offers). The best one is applied automatically at booking / ordering.
@@ -159,7 +158,7 @@ export default function Offers({ onBookNow }) {
                   <Img src={offerImage(o)} alt={o.title} className="h-44 w-full object-cover" />
                   <span className="absolute top-3 left-3 bg-[#B8893C] text-white font-bold px-3 py-1 rounded-md shadow">{o.discountPercent}% OFF</span>
                   <span className="absolute top-3 right-3 bg-white/90 text-[#1F3B2D] text-[11px] font-semibold px-2 py-0.5 rounded-full">
-                    {o.appliesTo === "FOOD" ? "🍽️ Food" : o.appliesTo === "ALL" ? "🛏️ + 🍽️" : "🛏️ Stay"}
+                    {appliesTag(o)}
                   </span>
                 </div>
                 <div className="p-5 flex flex-col flex-1">
@@ -170,6 +169,7 @@ export default function Offers({ onBookNow }) {
                       <li key={r} className="text-[11px] px-2 py-0.5 rounded-full bg-[#F3F5F1] text-[#1F3B2D] h-fit">{r}</li>
                     ))}
                   </ul>
+                  {!forRooms(o) && !isOnlineOffer(o) && <p className="text-xs text-[#1F3B2D] mt-2">🍽️ Dining in? Show this code at the billing desk.</p>}
                   {left !== null && left <= 10 && <p className="text-xs font-semibold text-red-600 mt-2">Only {left} left</p>}
                   <div className="mt-4 pt-4 border-t border-dashed flex items-end justify-between gap-3">
                     <div className="space-y-1">
@@ -187,6 +187,7 @@ export default function Offers({ onBookNow }) {
         <details className="mt-10 bg-white rounded-xl p-5 text-sm text-gray-600">
           <summary className="font-semibold text-[#1F3B2D] cursor-pointer">Terms & conditions</summary>
           <ul className="list-disc pl-5 mt-3 space-y-1">
+            <li>Dining at our restaurant? Show the offer code at the billing desk before your bill is printed.</li>
             <li>One offer per booking or order. If more than one fits, the biggest discount is applied automatically.</li>
             <li>The discount is taken off before GST; GST is charged on the amount after the discount.</li>
             <li>Room offers depend on the dates, number of nights and check-in day shown on each offer.</li>

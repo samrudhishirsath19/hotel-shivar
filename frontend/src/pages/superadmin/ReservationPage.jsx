@@ -8,6 +8,7 @@ import RoomsTab from "../admin/RoomsTab";
 import BookingModal from "../../components/BookingModal";
 import { printBookingInvoice } from "../../printBill";
 import { inr2, pct } from "../../gst";
+import { isRoomOffer } from "../../offers";
 
 const STATUS_STYLE = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -26,6 +27,29 @@ export function Bookings() {
   const [confirmed, setConfirmed] = useState(null); // booking just confirmed -> big notice
   const [newOpen, setNewOpen] = useState(false);
   const flash = (t) => { setMsg(t); setTimeout(() => setMsg(""), 3500); };
+  const [roomOffers, setRoomOffers] = useState([]); // live room offers, for "Apply offer"
+  const [pick, setPick] = useState({});             // bookingId -> code chosen
+
+  useEffect(() => {
+    if (!canStatus) return;
+    const today = new Date().toISOString().slice(0, 10);
+    apiFetch("/api/offers?activeOnly=true")
+      .then((d) => setRoomOffers((d || []).filter((o) => o.code && isRoomOffer(o) && (!o.validFrom || o.validFrom <= today)
+        && !(o.usageLimit && (o.usedCount || 0) >= o.usageLimit))))
+      .catch(() => setRoomOffers([]));
+  }, [canStatus]);
+
+  // apply (code) or remove ("") the offer on a booking; GST is worked out again by the server
+  const applyOffer = async (b, code) => {
+    try {
+      const saved = await apiFetch(`/api/bookings/${b.id}/offer`, { method: "PATCH", body: JSON.stringify({ code }) });
+      flash(code ? `🏷️ Offer ${saved.offerCode} applied to booking #${b.id} - saved ${inr2(saved.discountAmount)}` : `Offer removed from booking #${b.id}`);
+      setPick((p) => ({ ...p, [b.id]: "" }));
+      load();
+    } catch (e) {
+      flash("⚠️ " + e.message);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -95,7 +119,23 @@ export function Bookings() {
                     <>
                       <div className="font-bold">{inr2(b.grandTotal)}</div>
                       {b.taxAmount > 0 && <div className="text-[11px] text-gray-500">incl. GST {pct(b.gstRate)} {inr2(b.taxAmount)}</div>}
-                      {b.discountAmount > 0 && <div className="text-[11px] text-green-700">🏷️ offer applied {b.offerCode} - {inr2(b.discountAmount)}</div>}
+                      {b.discountAmount > 0 && (
+                        <div className="text-[11px] text-green-700">
+                          🏷️ Offer applied: {b.offerTitle || b.offerCode} ({b.offerCode}) - {inr2(b.discountAmount)}
+                          {canStatus && b.status !== "CANCELLED" && <button onClick={() => applyOffer(b, "")} className="ml-1 text-red-600 underline">remove</button>}
+                        </div>
+                      )}
+                      {canStatus && b.status !== "CANCELLED" && !b.offerCode && roomOffers.length > 0 && (
+                        <div className="mt-1 flex justify-end gap-1">
+                          <select value={pick[b.id] || ""} onChange={(e) => setPick((p) => ({ ...p, [b.id]: e.target.value }))}
+                            aria-label={`Offer for booking ${b.id}`} className="border rounded px-1 py-0.5 text-[11px] bg-white max-w-[150px]">
+                            <option value="">Apply offer…</option>
+                            {roomOffers.map((o) => <option key={o.id} value={o.code}>{o.code} - {o.discountPercent}%</option>)}
+                          </select>
+                          <button disabled={!pick[b.id]} onClick={() => applyOffer(b, pick[b.id])}
+                            className="px-2 py-0.5 rounded bg-[#B8893C] text-white text-[11px] font-bold disabled:opacity-40">Apply</button>
+                        </div>
+                      )}
                     </>
                   ) : <span className="text-xs text-gray-400">-</span>}
                 </td>

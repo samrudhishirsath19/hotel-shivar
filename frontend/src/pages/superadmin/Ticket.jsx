@@ -62,7 +62,7 @@ export function BillTotals({ order }) {
       {t.discount > 0 && (
         <>
           <div className="flex justify-between text-gray-600"><span>Item total</span><span>{inr2(t.gross)}</span></div>
-          <div className="flex justify-between text-green-700"><span>Offer applied ({order.offerCode})</span><span>- {inr2(t.discount)}</span></div>
+          <div className="flex justify-between text-green-700"><span>{order.offerCode ? `Offer applied (${order.offerCode})` : order.offerTitle || "Discount"}</span><span>- {inr2(t.discount)}</span></div>
         </>
       )}
       <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{inr2(t.taxable)}</span></div>
