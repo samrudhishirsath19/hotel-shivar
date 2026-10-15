@@ -107,7 +107,7 @@ export default function OrderTrack() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 10000);
+    const t = setInterval(load, 5000); // live status
     return () => clearInterval(t);
   }, [load]);
 

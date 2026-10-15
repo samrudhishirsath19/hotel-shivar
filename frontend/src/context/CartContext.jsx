@@ -58,7 +58,7 @@ export function CartProvider({ children }) {
   const placeOnlineOrder = async (details) => {
     const order = await apiFetch("/api/orders/online", {
       method: "POST",
-      headers: customerAuth(), // a logged-in customer: the order goes into their account
+      headers: customerAuth(), // the customer's login (needed to order; the order goes into their account)
       body: JSON.stringify({
         ...details,
         items: cart.map((c) => ({ menuItemId: c.id, quantity: c.qty })),

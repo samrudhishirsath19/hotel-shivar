@@ -53,11 +53,15 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         if (rule.customer()) {
             Optional<CustomerAccount> c = customer(claims);
-            if (c.isEmpty()) {
+            if (c.isPresent()) {
+                request.setAttribute(CUSTOMER_ATTRIBUTE, c.get());
+                return true;
+            }
+            boolean staffLogin = claims.isPresent() && !claims.get().isCustomer();
+            if (!rule.staffToo() || !staffLogin) {
                 return reject(response, HttpServletResponse.SC_UNAUTHORIZED, "Please log in to your account");
             }
-            request.setAttribute(CUSTOMER_ATTRIBUTE, c.get());
-            return true;
+            // staff allowed too (e.g. reception booking for a guest): checked below like any staff URL
         }
 
         Optional<AdminUser> user = claims

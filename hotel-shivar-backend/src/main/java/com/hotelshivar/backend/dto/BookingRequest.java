@@ -12,7 +12,13 @@ public class BookingRequest {
     private Long roomId;
 
     @NotBlank(message = "Guest name is required")
+    @Pattern(regexp = Names.PATTERN, message = Names.MESSAGE)
     private String guestName;
+
+    /** Extra spaces removed before checking (full names with spaces are fine). */
+    public void setGuestName(String v) {
+        this.guestName = Names.clean(v);
+    }
 
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../api";
 import { groupRooms } from "../roomGroups";
-import { digits10, isPhone10, PHONE_ERROR } from "../roles";
+import { digits10, isPhone10, PHONE_ERROR, cleanName, isFullName, NAME_ERROR, NAME_MAX } from "../roles";
+import CustomerLoginForm from "./CustomerLoginForm";
 import { useGst, calcTax, roomRate, taxOf, inr2, pct } from "../gst";
 import { Link } from "react-router-dom";
 import { checkOffer, bestOffer } from "../offers";
@@ -10,7 +11,8 @@ import { customerAuth, useCustomer } from "../context/CustomerContext";
 
 const blank = { category: "", roomId: "", name: "", email: "", mobile: "", checkIn: "", checkOut: "", guests: 1 };
 
-export default function BookingModal({ isOpen, onClose, roomName = "", offerCode: startCode = "" }) {
+// staff = opened from the Reservation page (front desk books for a guest; no customer login needed)
+export default function BookingModal({ isOpen, onClose, roomName = "", offerCode: startCode = "", staff = false }) {
   const [form, setForm] = useState(blank);
   const { customer } = useCustomer();
   const [code, setCode] = useState("");     // what the guest typed
@@ -42,9 +44,9 @@ export default function BookingModal({ isOpen, onClose, roomName = "", offerCode
 
   // a logged-in customer: fill in their details
   useEffect(() => {
-    if (!isOpen || !customer) return;
+    if (!isOpen || !customer || staff) return;
     setForm((f) => ({ ...f, name: f.name || customer.name || "", email: f.email || customer.email || "", mobile: f.mobile || customer.phone || "" }));
-  }, [isOpen, customer]);
+  }, [isOpen, customer, staff]);
 
   // which rooms are already booked for the chosen dates (tonight until dates are picked)
   useEffect(() => {
@@ -113,6 +115,10 @@ export default function BookingModal({ isOpen, onClose, roomName = "", offerCode
       setError("Please fill all the details.");
       return;
     }
+    if (!isFullName(form.name)) {
+      setError(NAME_ERROR);
+      return;
+    }
     if (!isPhone10(form.mobile)) {
       setError(PHONE_ERROR);
       return;
@@ -129,10 +135,10 @@ export default function BookingModal({ isOpen, onClose, roomName = "", offerCode
     try {
       const saved = await apiFetch("/api/bookings", {
         method: "POST",
-        headers: customerAuth(), // a logged-in customer: the booking goes into their account
+        headers: staff ? {} : customerAuth(), // the booking goes into the customer's account
         body: JSON.stringify({
           roomId: Number(form.roomId),
-          guestName: form.name.trim(),
+          guestName: cleanName(form.name),
           email: form.email.trim(),
           phone: form.mobile,
           checkIn: form.checkIn,
@@ -159,7 +165,13 @@ export default function BookingModal({ isOpen, onClose, roomName = "", offerCode
       <div className="relative bg-white w-full md:max-w-lg rounded-t-[24px] md:rounded-2xl shadow-2xl p-6 md:p-8 max-h-[92vh] overflow-y-auto">
         <button onClick={close} aria-label="Close" className="absolute top-4 right-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">✕</button>
 
-        {!booking ? (
+        {!staff && !customer && !booking ? (
+          <>
+            <h2 className="font-serif text-2xl text-[#1F3B2D]">Login to book your stay</h2>
+            <p className="text-sm text-gray-500 mb-5">Log in with your mobile number to book and track your booking live.</p>
+            <CustomerLoginForm />
+          </>
+        ) : !booking ? (
           <>
             <h2 className="font-serif text-2xl text-[#1F3B2D]">Book your stay</h2>
             <p className="text-sm text-gray-500">Hotel Shivar, Kamshet</p>
@@ -213,7 +225,7 @@ export default function BookingModal({ isOpen, onClose, roomName = "", offerCode
               )}
               <div>
                 <label className="text-sm font-medium">Full name</label>
-                <input value={form.name} onChange={set("name")} placeholder="Your name" className={inputCls} />
+                <input value={form.name} onChange={set("name")} placeholder="Your full name" maxLength={NAME_MAX} autoComplete="name" className={inputCls} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

@@ -19,11 +19,15 @@ export default function BookingTrack() {
   const [b, setB] = useState(null);
   const [error, setError] = useState("");
 
+  // live: the front desk confirming the booking shows up here without reloading
   useEffect(() => {
-    apiFetch(`/api/bookings/track/${encodeURIComponent(code)}`).then(setB).catch((e) => setError(e.message));
+    const load = () => apiFetch(`/api/bookings/track/${encodeURIComponent(code)}`).then((d) => { setB(d); setError(""); }).catch((e) => setError(e.message));
+    load();
+    const t = setInterval(() => { if (!document.hidden) load(); }, 10000);
+    return () => clearInterval(t);
   }, [code]);
 
-  if (error) {
+  if (error && !b) {
     return (
       <div className="max-w-xl mx-auto px-4 py-16 text-center">
         <p className="text-red-700">{error}</p>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PageHeader from "../components/PageHeader";
-import { digits10 } from "../roles";
+import { digits10, cleanName, isFullName, NAME_ERROR, NAME_MAX } from "../roles";
 import { apiFetch } from "../api";
 
 const u = (id, w = 1600) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
@@ -21,13 +21,17 @@ export default function Contact() {
     e.preventDefault();
     setError("");
     setSent("");
+    if (!isFullName(form.name)) {
+      setError(NAME_ERROR);
+      return;
+    }
     setBusy(true);
     try {
       await apiFetch("/api/contact", {
         method: "POST",
-        body: JSON.stringify({ ...form, name: form.name.trim(), email: form.email.trim(), message: form.message.trim() }),
+        body: JSON.stringify({ ...form, name: cleanName(form.name), email: form.email.trim(), message: form.message.trim() }),
       });
-      setSent(`Thank you, ${form.name.trim()}! We've received your message and will reply within 24 hours.`);
+      setSent(`Thank you, ${cleanName(form.name)}! We've received your message and will reply within 24 hours.`);
       setForm(emptyForm);
     } catch (err) {
       setError(err.message);
@@ -57,7 +61,8 @@ export default function Contact() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="c-name" className="block text-sm font-medium mb-1">Full name</label>
-              <input id="c-name" name="name" required value={form.name} onChange={handleChange} className={inputClass} />
+              <input id="c-name" name="name" type="text" required value={form.name} onChange={handleChange} maxLength={NAME_MAX}
+                autoComplete="name" autoCapitalize="words" spellCheck={false} placeholder="e.g. Ravi Kumar Sharma" className={inputClass} />
             </div>
             <div>
               <label htmlFor="c-phone" className="block text-sm font-medium mb-1">Mobile number</label>

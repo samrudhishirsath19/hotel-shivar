@@ -75,3 +75,10 @@ export const inr = (n) => "₹" + Number(n || 0).toLocaleString("en-IN", { maxim
 export const digits10 = (v) => String(v || "").replace(/\D/g, "").slice(0, 10);
 export const isPhone10 = (v) => /^\d{10}$/.test(String(v || ""));
 export const PHONE_ERROR = "Phone number must be exactly 10 digits.";
+
+// Full names: letters in any script, spaces between words, and . ' - (e.g. "Ravi Kumar Sharma", "D'Souza").
+// Same rule as the server (Names.java). cleanName removes extra spaces before sending.
+export const NAME_MAX = 100;
+export const cleanName = (v) => String(v || "").trim().replace(/\s+/g, " ");
+export const isFullName = (v) => /^[\p{L}\p{M}][\p{L}\p{M} .'-]{0,99}$/u.test(cleanName(v));
+export const NAME_ERROR = "Enter a valid full name (letters and spaces only).";

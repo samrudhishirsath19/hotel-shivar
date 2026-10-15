@@ -10,8 +10,13 @@ import lombok.Data;
 public class CustomerRegisterRequest {
 
     @NotBlank(message = "Name is required")
-    @Size(max = 100, message = "Name is too long")
+    @Pattern(regexp = Names.PATTERN, message = Names.MESSAGE)
     private String name;
+
+    /** Extra spaces removed before checking (full names with spaces are fine). */
+    public void setName(String v) {
+        this.name = Names.clean(v);
+    }
 
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")

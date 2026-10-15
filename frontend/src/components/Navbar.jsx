@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useCart, LAST_ORDER_KEY } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { homeFor, digits10, isPhone10, PHONE_ERROR } from "../roles";
+import { homeFor, digits10, isPhone10, PHONE_ERROR, cleanName, isFullName, NAME_ERROR, NAME_MAX } from "../roles";
 import { useGst, calcTax, foodRate, inr2, pct } from "../gst";
 import { useCustomer } from "../context/CustomerContext";
 import { checkOffer, bestOffer } from "../offers";
@@ -33,7 +33,8 @@ export default function Navbar({ onBookNow }) {
   const { cart, total, count, removeFromCart, updateCartQty, clearCart, placeOnlineOrder } = useCart();
   const { user, logout } = useAuth();
   const gst = useGst();
-  const { customer } = useCustomer();
+  const { customer, ensureLogin, activeOrders, activeBookings } = useCustomer();
+  const liveCount = activeOrders.length + activeBookings.length;
   const [offerCode, setOfferCode] = useState("");
   const [offer, setOffer] = useState(null); // checked offer: { code, title, discount }
   const [offerMsg, setOfferMsg] = useState("");
@@ -67,8 +68,18 @@ export default function Navbar({ onBookNow }) {
     }`;
 
   const submitOrder = async () => {
+    // ordering needs a customer login (like Swiggy / Zomato): log in first, then review and place the order
+    if (!customer) {
+      const ok = await ensureLogin("Log in to place your order and track it live.");
+      if (ok) setOrderMsg({ ok: true, text: "You're logged in - check your details and place the order." });
+      return;
+    }
     if (!custName.trim() || !custPhone.trim()) {
       setOrderMsg({ ok: false, text: "Please enter your name and mobile number" });
+      return;
+    }
+    if (!isFullName(custName)) {
+      setOrderMsg({ ok: false, text: NAME_ERROR });
       return;
     }
     if (!isPhone10(custPhone)) {
@@ -86,7 +97,7 @@ export default function Navbar({ onBookNow }) {
     setPlacing(true);
     try {
       const order = await placeOnlineOrder({
-        customerName: custName.trim(),
+        customerName: cleanName(custName),
         customerPhone: custPhone.trim(),
         deliveryAddress: address.trim(),
         deliveryNote: note.trim() || null,
@@ -109,11 +120,11 @@ export default function Navbar({ onBookNow }) {
   return (
     <header className="fixed top-0 inset-x-0 z-40 bg-[#1F3B2D] shadow">
       <nav className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="font-serif text-2xl text-white tracking-wide">
+        <Link to="/" className="font-serif text-xl sm:text-2xl text-white tracking-wide whitespace-nowrap">
           Hotel Shivar
         </Link>
 
-        <div className="hidden lg:flex items-center gap-1">
+        <div className="hidden xl:flex items-center gap-1">
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.to === "/"} className={linkClass}>
               {l.label}
@@ -121,10 +132,18 @@ export default function Navbar({ onBookNow }) {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link to="/account" className="hidden md:block text-white text-sm px-3 py-1.5 rounded-full hover:bg-white/10" title="Track your bookings and orders">
-            {customer ? `👤 ${customer.name.split(" ")[0]}` : "My Account"}
-          </Link>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {customer ? (
+            <Link to="/account" className="relative hidden md:flex items-center gap-1.5 text-white text-sm px-3 py-1.5 rounded-full hover:bg-white/10" title="My bookings and orders (live)">
+              <span className="w-6 h-6 rounded-full bg-[#B8893C] flex items-center justify-center text-xs font-bold">{customer.name.charAt(0).toUpperCase()}</span>
+              {customer.name.split(" ")[0]}
+              {liveCount > 0 && <span className="ml-0.5 bg-green-500 text-white text-[10px] font-bold px-1.5 rounded-full" title="In progress">{liveCount}</span>}
+            </Link>
+          ) : (
+            <button type="button" onClick={() => ensureLogin()} className="hidden md:block whitespace-nowrap text-white text-sm font-semibold px-3 py-1.5 rounded-full hover:bg-white/10">
+              Sign in
+            </button>
+          )}
           {user ? (
             <>
               <Link to={homeFor(user.role)} className="hidden md:block bg-white text-[#1F3B2D] text-sm font-semibold px-4 py-1.5 rounded-full hover:bg-gray-100">
@@ -135,7 +154,7 @@ export default function Navbar({ onBookNow }) {
               </button>
             </>
           ) : (
-            <Link to="/login" className="hidden md:block border border-white/30 text-white text-sm px-4 py-1.5 rounded-full hover:bg-white/10">
+            <Link to="/login" className="hidden md:block whitespace-nowrap border border-white/30 text-white text-sm px-4 py-1.5 rounded-full hover:bg-white/10">
               Staff Login
             </Link>
           )}
@@ -145,7 +164,7 @@ export default function Navbar({ onBookNow }) {
             <button
               type="button"
               onClick={() => setCartOpen(!cartOpen)}
-              className="relative bg-[#B8893C] hover:bg-[#9E7430] text-white text-sm font-medium px-4 py-2 rounded-md flex items-center gap-1"
+              className="relative whitespace-nowrap bg-[#B8893C] hover:bg-[#9E7430] text-white text-sm font-medium px-2.5 sm:px-4 py-2 rounded-md flex items-center gap-1"
             >
               🛒 Cart {count > 0 && <span className="bg-white text-[#1F3B2D] text-[11px] font-bold px-1.5 rounded-full">{count}</span>}
             </button>
@@ -211,7 +230,9 @@ export default function Navbar({ onBookNow }) {
                     <input
                       value={custName}
                       onChange={(e) => setCustName(e.target.value)}
-                      placeholder="Your name"
+                      maxLength={NAME_MAX}
+                      autoComplete="name"
+                      placeholder="Your full name"
                       className="w-full mt-3 border rounded-lg px-3 py-2 text-sm"
                     />
                     <input
@@ -249,7 +270,7 @@ export default function Navbar({ onBookNow }) {
                       disabled={placing}
                       className="w-full mt-3 bg-[#1F3B2D] text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60"
                     >
-                      {placing ? "Placing order..." : payMode === "ONLINE" ? `Place order & pay ${inr2(bill.total)}` : "Place order (cash on delivery)"}
+                      {!customer ? "Login to place order" : placing ? "Placing order..." : payMode === "ONLINE" ? `Place order & pay ${inr2(bill.total)}` : "Place order (cash on delivery)"}
                     </button>
                     <button onClick={clearCart} className="w-full mt-2 text-xs text-gray-500 hover:text-red-500">Clear All / Cancel</button>
                   </>
@@ -261,7 +282,7 @@ export default function Navbar({ onBookNow }) {
           <button
             type="button"
             onClick={onBookNow}
-            className="bg-[#B8893C] hover:bg-[#9E7430] text-white text-sm font-medium px-4 py-2 rounded-md"
+            className="whitespace-nowrap bg-[#B8893C] hover:bg-[#9E7430] text-white text-sm font-medium px-2.5 sm:px-4 py-2 rounded-md"
           >
             Book Now
           </button>
@@ -269,7 +290,7 @@ export default function Navbar({ onBookNow }) {
           <button
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
-            className="lg:hidden text-white p-2"
+            className="xl:hidden text-white p-2"
             aria-label="Toggle menu"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -280,14 +301,14 @@ export default function Navbar({ onBookNow }) {
       </nav>
 
       {menuOpen && (
-        <div className="lg:hidden bg-[#1F3B2D] border-t border-white/10 px-4 pb-4 flex flex-col">
+        <div className="xl:hidden bg-[#1F3B2D] border-t border-white/10 px-4 pb-4 flex flex-col">
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.to === "/"} className={linkClass} onClick={() => setMenuOpen(false)}>
               {l.label}
             </NavLink>
           ))}
           <Link to="/account" className={linkClass({ isActive: false })} onClick={() => setMenuOpen(false)}>
-            {customer ? `👤 My Account (${customer.name.split(" ")[0]})` : "My Account - track bookings & orders"}
+            {customer ? `👤 My Account (${customer.name.split(" ")[0]})${liveCount ? ` · ${liveCount} live` : ""}` : "Sign in - book, order & track live"}
           </Link>
           <div className="flex gap-2 mt-3 pt-3 border-t border-white/10">
             {user ? (

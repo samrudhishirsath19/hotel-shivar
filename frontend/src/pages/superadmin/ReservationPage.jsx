@@ -98,7 +98,7 @@ export function Bookings() {
       <div className="mb-4 flex justify-end">
         <button onClick={() => setNewOpen(true)} className="px-5 py-2 rounded-full bg-[#B8893C] text-white text-sm font-bold">＋ New booking</button>
       </div>
-      <BookingModal isOpen={newOpen} onClose={() => { setNewOpen(false); load(); }} />
+      <BookingModal staff isOpen={newOpen} onClose={() => { setNewOpen(false); load(); }} />
       {error && <p className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
       <div className="bg-white rounded-xl border overflow-x-auto">
         <table className="w-full text-sm min-w-[900px]">

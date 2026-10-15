@@ -16,8 +16,13 @@ import java.util.List;
 public class OnlineOrderRequest {
 
     @NotBlank(message = "Your name is required")
-    @Size(max = 100, message = "Name is too long")
+    @Pattern(regexp = Names.PATTERN, message = Names.MESSAGE)
     private String customerName;
+
+    /** Extra spaces removed before checking (full names with spaces are fine). */
+    public void setCustomerName(String v) {
+        this.customerName = Names.clean(v);
+    }
 
     @NotBlank(message = "Your mobile number is required")
     @Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be exactly 10 digits")

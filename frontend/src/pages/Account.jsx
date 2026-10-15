@@ -1,106 +1,82 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCustomer, customerFetch } from "../context/CustomerContext";
-import { digits10 } from "../roles";
+import CustomerLoginForm from "../components/CustomerLoginForm";
+import OrderStepper from "../components/OrderStepper";
 import { fmtDateTime } from "../dates";
 import { inr2, payable } from "../gst";
 import { onlineStatusOf, onlineLabel } from "../orderStatus";
 import { BOOKING_STATUS } from "./BookingTrack";
 
-const inputCls = "mt-1 w-full border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#1F3B2D] outline-none";
+const inputCls = "w-full border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#1F3B2D] outline-none";
 
-// Log in / sign up (customer accounts are separate from the staff login)
-function AuthForms() {
-  const { login, register } = useCustomer();
-  const [mode, setMode] = useState("login");
-  const [form, setForm] = useState({ login: "", name: "", email: "", phone: "", password: "" });
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => { const v = e.target.value; setForm((f) => ({ ...f, [k]: v })); };
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (mode === "register" && form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    setBusy(true);
-    try {
-      if (mode === "login") await login(form.login.trim(), form.password);
-      else await register({ name: form.name.trim(), email: form.email.trim(), phone: form.phone, password: form.password });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
+// Room booking progress: received -> confirmed -> stay completed (or cancelled)
+const BOOKING_STEPS = [["PENDING", "Received"], ["CONFIRMED", "Confirmed"], ["COMPLETED", "Stay completed"]];
+function BookingSteps({ status }) {
+  if (status === "CANCELLED") return <p className="text-xs font-semibold text-red-600">This booking was cancelled.</p>;
+  const at = BOOKING_STEPS.findIndex(([s]) => s === status);
   return (
-    <div className="max-w-md mx-auto bg-white rounded-2xl border p-6 md:p-8">
-      <div className="grid grid-cols-2 gap-1 bg-[#F3F5F1] p-1 rounded-xl text-sm font-semibold">
-        {[["login", "Log in"], ["register", "Create account"]].map(([id, label]) => (
-          <button key={id} type="button" onClick={() => { setMode(id); setError(""); }}
-            className={`py-2 rounded-lg ${mode === id ? "bg-white shadow text-[#1F3B2D]" : "text-gray-500"}`}>{label}</button>
-        ))}
-      </div>
-      <p className="text-sm text-gray-500 mt-4">
-        {mode === "login" ? "Track your room bookings and food orders." : "Bookings and orders you make while logged in are saved here."}
-      </p>
-      {error && <p role="alert" className="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
-      <form onSubmit={submit} className="mt-4 space-y-3">
-        {mode === "login" ? (
-          <div>
-            <label className="text-sm font-medium" htmlFor="c-login">Email or mobile number</label>
-            <input id="c-login" value={form.login} onChange={set("login")} autoComplete="username" className={inputCls} />
-          </div>
-        ) : (
-          <>
-            <div>
-              <label className="text-sm font-medium" htmlFor="c-name">Full name</label>
-              <input id="c-name" value={form.name} onChange={set("name")} autoComplete="name" className={inputCls} />
-            </div>
-            <div>
-              <label className="text-sm font-medium" htmlFor="c-email">Email</label>
-              <input id="c-email" type="email" value={form.email} onChange={set("email")} autoComplete="email" className={inputCls} />
-            </div>
-            <div>
-              <label className="text-sm font-medium" htmlFor="c-phone">Mobile number</label>
-              <input id="c-phone" value={form.phone} inputMode="numeric" placeholder="10-digit number"
-                onChange={(e) => { const v = digits10(e.target.value); setForm((f) => ({ ...f, phone: v })); }} className={inputCls} />
-            </div>
-          </>
-        )}
+    <ol className="flex items-center gap-1 text-[11px]">
+      {BOOKING_STEPS.map(([s, label], i) => (
+        <li key={s} className="flex items-center gap-1 flex-1">
+          <span className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center font-bold ${i <= at ? "bg-[#1F3B2D] text-white" : "bg-gray-200 text-gray-500"}`}>
+            {i < at ? "✓" : i + 1}
+          </span>
+          <span className={i <= at ? "text-[#1F3B2D] font-semibold" : "text-gray-400"}>{label}</span>
+          {i < BOOKING_STEPS.length - 1 && <span className={`flex-1 h-0.5 ${i < at ? "bg-[#1F3B2D]" : "bg-gray-200"}`} />}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function OrderCard({ o }) {
+  const status = onlineStatusOf(o);
+  const items = o.lines?.reduce((s, l) => s + l.quantity, 0) || 0;
+  return (
+    <li className="bg-white rounded-2xl border p-4">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <label className="text-sm font-medium" htmlFor="c-pass">Password</label>
-          <input id="c-pass" type="password" value={form.password} onChange={set("password")}
-            autoComplete={mode === "login" ? "current-password" : "new-password"} className={inputCls} />
+          <p className="font-semibold text-[#1F3B2D]">🍽️ Order #{o.id} · {items} item{items === 1 ? "" : "s"}</p>
+          <p className="text-xs text-gray-500">{fmtDateTime(o.createdAt)} · {inr2(payable(o))}</p>
+          {o.lines?.length > 0 && <p className="text-xs text-gray-600 mt-1 line-clamp-1">{o.lines.map((l) => `${l.quantity} × ${l.name}`).join(", ")}</p>}
+          {o.discountAmount > 0 && <p className="text-xs text-green-700 font-semibold">🏷️ Offer applied: {o.offerTitle || o.offerCode} · saved {inr2(o.discountAmount)}</p>}
         </div>
-        <button disabled={busy} className="w-full bg-[#1F3B2D] text-white font-semibold py-3.5 rounded-xl hover:bg-black disabled:opacity-60">
-          {busy ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
-        </button>
-      </form>
-      <p className="text-xs text-gray-400 mt-4 text-center">Hotel staff? Use the <Link to="/login" className="underline">staff login</Link>.</p>
-    </div>
+        <span className="text-[11px] px-2.5 py-1 rounded-full font-bold bg-[#1F3B2D] text-white whitespace-nowrap">{onlineLabel(status)}</span>
+      </div>
+      {status !== "CANCELLED" && <div className="mt-3"><OrderStepper status={status} compact /></div>}
+      {o.trackingCode && (
+        <Link to={`/order/${o.trackingCode}`} className="mt-3 inline-block text-sm font-semibold text-[#B8893C]">
+          {status === "DELIVERED" || status === "CANCELLED" ? "View details →" : "Track order →"}
+        </Link>
+      )}
+    </li>
+  );
+}
+
+function BookingCard({ b }) {
+  const st = BOOKING_STATUS[b.status] || BOOKING_STATUS.PENDING;
+  return (
+    <li className="bg-white rounded-2xl border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-[#1F3B2D]">🛏️ Booking #{b.id} · {b.room?.name} (No. {b.room?.roomNumber})</p>
+          <p className="text-xs text-gray-500">{b.checkIn} → {b.checkOut} · {b.numberOfGuests} guest{b.numberOfGuests > 1 ? "s" : ""} · {inr2(payable(b) || b.roomCharges)}</p>
+          {b.discountAmount > 0 && <p className="text-xs text-green-700 font-semibold">🏷️ Offer applied: {b.offerTitle || b.offerCode} · saved {inr2(b.discountAmount)}</p>}
+        </div>
+        <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold whitespace-nowrap ${st.cls}`}>{st.label}</span>
+      </div>
+      <div className="mt-3"><BookingSteps status={b.status} /></div>
+      {b.trackingCode && <Link to={`/booking/${b.trackingCode}`} className="mt-3 inline-block text-sm font-semibold text-[#B8893C]">View booking →</Link>}
+    </li>
   );
 }
 
 function Dashboard() {
-  const { customer, logout } = useCustomer();
-  const [bookings, setBookings] = useState(null);
-  const [orders, setOrders] = useState(null);
-  const [error, setError] = useState("");
+  const { customer, logout, bookings, orders, refresh, activeOrders, activeBookings } = useCustomer();
+  const [tab, setTab] = useState("active");
   const [code, setCode] = useState("");
   const [claimMsg, setClaimMsg] = useState({ ok: "", error: "" });
-
-  const load = useCallback(() => {
-    Promise.all([customerFetch("/api/customer/bookings"), customerFetch("/api/customer/orders")])
-      .then(([b, o]) => { setBookings(b || []); setOrders(o || []); setError(""); })
-      .catch((e) => { if (e.status === 401) logout(); else setError(e.message); });
-  }, [logout]);
-
-  useEffect(() => {
-    load();
-    const t = setInterval(load, 20000); // order statuses change while the guest watches
-    return () => clearInterval(t);
-  }, [load]);
 
   const claim = async (e) => {
     e.preventDefault();
@@ -110,95 +86,87 @@ function Dashboard() {
       const r = await customerFetch("/api/customer/claim", { method: "POST", body: JSON.stringify({ code: code.trim() }) });
       setClaimMsg({ ok: `${r.type === "BOOKING" ? "Booking" : "Order"} #${r.id} added to your account.`, error: "" });
       setCode("");
-      load();
+      refresh();
     } catch (err) {
       setClaimMsg({ ok: "", error: err.message });
     }
   };
 
+  const loading = bookings === null || orders === null;
+  const TABS = [
+    ["active", `Active (${activeOrders.length + activeBookings.length})`],
+    ["orders", `Food orders (${orders?.length || 0})`],
+    ["bookings", `Room bookings (${bookings?.length || 0})`],
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-serif text-3xl text-[#1F3B2D]">Hello, {customer.name}</h1>
-          <p className="text-sm text-gray-500">{customer.email} · {customer.phone}</p>
+    <div className="space-y-5">
+      <div className="bg-[#1F3B2D] text-white rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="w-12 h-12 rounded-full bg-[#B8893C] flex items-center justify-center text-xl font-bold">{customer.name.charAt(0).toUpperCase()}</span>
+          <div>
+            <h1 className="font-serif text-2xl">Hello, {customer.name.split(" ")[0]}</h1>
+            <p className="text-xs text-white/70">+91 {customer.phone} · {customer.email}</p>
+          </div>
         </div>
-        <button onClick={logout} className="text-sm border rounded-lg px-4 py-2 bg-white">Log out</button>
+        <button onClick={logout} className="text-sm border border-white/30 rounded-lg px-4 py-2 hover:bg-white/10">Log out</button>
       </div>
-      {error && <p role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
 
-      <section className="bg-white rounded-2xl border p-5">
-        <h2 className="font-bold text-[#1F3B2D]">My room bookings</h2>
-        {bookings === null ? <p className="text-sm text-gray-500 mt-2">Loading...</p>
-          : bookings.length === 0 ? <p className="text-sm text-gray-500 mt-2">No bookings yet.</p> : (
-            <ul className="mt-3 divide-y">
-              {bookings.map((b) => {
-                const st = BOOKING_STATUS[b.status] || BOOKING_STATUS.PENDING;
-                return (
-                  <li key={b.id} className="py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <div>
-                      <p className="font-semibold">#{b.id} · {b.room?.name} (No. {b.room?.roomNumber})</p>
-                      <p className="text-gray-500">{b.checkIn} → {b.checkOut} · {inr2(payable(b) || b.roomCharges)}</p>
-                      {b.discountAmount > 0 && <p className="text-xs text-green-700 font-semibold">🏷️ Offer applied: {b.offerTitle || b.offerCode} · saved {inr2(b.discountAmount)}</p>}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${st.cls}`}>{st.label}</span>
-                      {b.trackingCode && <Link to={`/booking/${b.trackingCode}`} className="text-[#B8893C] font-semibold">View</Link>}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+      <div className="flex flex-wrap items-center gap-2">
+        {TABS.map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={`px-4 py-2 rounded-full text-sm font-semibold border ${tab === id ? "bg-[#1F3B2D] text-white border-[#1F3B2D]" : "bg-white"}`}>{label}</button>
+        ))}
+        <span className="ml-auto text-xs text-green-700 flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Live - updates automatically
+        </span>
+      </div>
+
+      {loading ? <p className="text-sm text-gray-500">Loading...</p> : (
+        <ul className="space-y-3">
+          {tab === "active" && activeOrders.length + activeBookings.length === 0 && (
+            <li className="bg-white rounded-2xl border p-6 text-center text-sm text-gray-500">
+              Nothing in progress right now. <Link to="/restaurant" className="text-[#B8893C] font-semibold">Order food</Link> or <Link to="/rooms" className="text-[#B8893C] font-semibold">book a room</Link>.
+            </li>
           )}
-      </section>
+          {tab === "active" && activeOrders.map((o) => <OrderCard key={`o${o.id}`} o={o} />)}
+          {tab === "active" && activeBookings.map((b) => <BookingCard key={`b${b.id}`} b={b} />)}
 
-      <section className="bg-white rounded-2xl border p-5">
-        <h2 className="font-bold text-[#1F3B2D]">My food orders</h2>
-        {orders === null ? <p className="text-sm text-gray-500 mt-2">Loading...</p>
-          : orders.length === 0 ? <p className="text-sm text-gray-500 mt-2">No online orders yet. <Link to="/restaurant" className="underline">Order food</Link></p> : (
-            <ul className="mt-3 divide-y">
-              {orders.map((o) => (
-                <li key={o.id} className="py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <div>
-                    <p className="font-semibold">#{o.id} · {o.lines?.reduce((s, l) => s + l.quantity, 0) || 0} item(s)</p>
-                    <p className="text-gray-500">{fmtDateTime(o.createdAt)} · {inr2(payable(o))}</p>
-                    {o.discountAmount > 0 && <p className="text-xs text-green-700 font-semibold">🏷️ Offer applied: {o.offerTitle || o.offerCode} · saved {inr2(o.discountAmount)}</p>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-[#1F3B2D] text-white">{onlineLabel(onlineStatusOf(o))}</span>
-                    {o.trackingCode && <Link to={`/order/${o.trackingCode}`} className="text-[#B8893C] font-semibold">Track</Link>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-      </section>
+          {tab === "orders" && orders.length === 0 && <li className="bg-white rounded-2xl border p-6 text-center text-sm text-gray-500">No online orders yet. <Link to="/restaurant" className="text-[#B8893C] font-semibold">Order food</Link></li>}
+          {tab === "orders" && orders.map((o) => <OrderCard key={o.id} o={o} />)}
 
-      <section className="bg-white rounded-2xl border p-5">
-        <h2 className="font-bold text-[#1F3B2D]">Add a booking or order</h2>
-        <p className="text-sm text-gray-500">Booked or ordered without logging in? Paste the tracking link or code from the confirmation.</p>
+          {tab === "bookings" && bookings.length === 0 && <li className="bg-white rounded-2xl border p-6 text-center text-sm text-gray-500">No bookings yet. <Link to="/rooms" className="text-[#B8893C] font-semibold">Book a room</Link></li>}
+          {tab === "bookings" && bookings.map((b) => <BookingCard key={b.id} b={b} />)}
+        </ul>
+      )}
+
+      <details className="bg-white rounded-2xl border p-5">
+        <summary className="font-bold text-[#1F3B2D] cursor-pointer">Add an older booking or order</summary>
+        <p className="text-sm text-gray-500 mt-2">Booked or ordered before you had an account? Paste the tracking link or code from the confirmation.</p>
         <form onSubmit={claim} className="mt-3 flex gap-2">
-          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="BK... / HS... or the tracking link" className={inputCls.replace("mt-1 ", "")} />
+          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="BK... / HS... or the tracking link" className={inputCls} />
           <button className="bg-[#1F3B2D] text-white font-semibold px-5 rounded-xl">Add</button>
         </form>
         {claimMsg.ok && <p className="text-sm text-green-700 mt-2">{claimMsg.ok}</p>}
         {claimMsg.error && <p className="text-sm text-red-600 mt-2">{claimMsg.error}</p>}
-      </section>
+      </details>
     </div>
   );
 }
 
-// /account: the guest's own login, separate from the staff panel.
+// /account: the guest's own login (mobile + OTP), separate from the staff panel.
 export default function Account() {
   const { customer, checking } = useCustomer();
   return (
     <div className="bg-[#F3F5F1] min-h-[calc(100vh-4rem)]">
       <div className="max-w-3xl mx-auto px-4 py-10">
         {checking ? <p className="text-center text-gray-500">Loading...</p> : customer ? <Dashboard /> : (
-          <>
-            <h1 className="font-serif text-3xl text-[#1F3B2D] text-center mb-6">My Account</h1>
-            <AuthForms />
-          </>
+          <div className="max-w-md mx-auto bg-white rounded-2xl border p-6 md:p-8">
+            <h1 className="font-serif text-3xl text-[#1F3B2D]">Login or sign up</h1>
+            <p className="text-sm text-gray-500 mt-1 mb-5">Book rooms, order food and track everything live.</p>
+            <CustomerLoginForm />
+            <p className="text-xs text-gray-400 mt-4 text-center">Hotel staff? Use the <Link to="/login" className="underline">staff login</Link>.</p>
+          </div>
         )}
       </div>
     </div>

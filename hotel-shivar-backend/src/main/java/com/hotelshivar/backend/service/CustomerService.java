@@ -2,6 +2,7 @@ package com.hotelshivar.backend.service;
 
 import com.hotelshivar.backend.dto.CustomerLoginRequest;
 import com.hotelshivar.backend.dto.CustomerRegisterRequest;
+import com.hotelshivar.backend.dto.OtpRequest;
 import com.hotelshivar.backend.entity.Booking;
 import com.hotelshivar.backend.entity.CustomerAccount;
 import com.hotelshivar.backend.entity.FoodOrder;
@@ -35,6 +36,7 @@ public class CustomerService {
     private final LoginAttemptService loginAttemptService;
     private final BookingRepository bookingRepository;
     private final FoodOrderRepository orderRepository;
+    private final OtpService otpService;
 
     public record Session(String token, CustomerAccount customer, long expiresAt) { }
 
@@ -77,6 +79,54 @@ public class CustomerService {
         c.setLastLoginAt(LocalDateTime.now());
         repository.save(c);
         return session(c);
+    }
+
+    /** OTP login step 1: send a code to this number. newUser = no account yet (the next step asks name + email). */
+    public record OtpSent(boolean newUser, int resendIn, String code) { }
+
+    public OtpSent sendOtp(String phone) {
+        Optional<CustomerAccount> existing = repository.findFirstByPhone(phone);
+        if (existing.isPresent() && !Boolean.TRUE.equals(existing.get().getActive())) {
+            throw new UnauthorizedException("This account is blocked. Please call the hotel.");
+        }
+        String code = otpService.send(phone);
+        return new OtpSent(existing.isEmpty(), OtpService.RESEND_SECONDS, code);
+    }
+
+    /**
+     * OTP login step 2: a correct code logs the customer in. For a new number the account is created here,
+     * so name and email are needed (the email also lets them log in with a password later, if they set one).
+     */
+    @Transactional
+    public Session loginWithOtp(OtpRequest r) {
+        String phone = r.getPhone();
+        Optional<CustomerAccount> existing = repository.findFirstByPhone(phone);
+        String email = r.getEmail() == null ? "" : r.getEmail().trim().toLowerCase(Locale.ROOT);
+        if (existing.isEmpty()) {
+            // check the details before using up the OTP, so a typo does not need a new code
+            if (r.getName() == null || r.getName().isBlank()) {
+                throw new BadRequestException("Enter your full name");
+            }
+            if (email.isEmpty()) {
+                throw new BadRequestException("Enter your email");
+            }
+            if (repository.findByEmailIgnoreCase(email).isPresent()) {
+                throw new BadRequestException("This email is already used by another account - log in with that account's mobile number");
+            }
+        }
+        otpService.verify(phone, r.getOtp());
+        CustomerAccount c = existing.orElseGet(() -> CustomerAccount.builder()
+                .name(r.getName())
+                .email(email)
+                .phone(phone)
+                // OTP-only account: a random password nobody knows (password login stays off until one is set)
+                .passwordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                .build());
+        if (!Boolean.TRUE.equals(c.getActive())) {
+            throw new UnauthorizedException("This account is blocked. Please call the hotel.");
+        }
+        c.setLastLoginAt(LocalDateTime.now());
+        return session(repository.save(c));
     }
 
     private Session session(CustomerAccount c) {

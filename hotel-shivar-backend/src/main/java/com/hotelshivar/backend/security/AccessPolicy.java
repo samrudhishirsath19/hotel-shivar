@@ -30,12 +30,17 @@ public class AccessPolicy {
 
         static Rule publicUrl() { return new Rule(true, false, null, null); }
         static Rule customerAccount() { return new Rule(false, true, null, null); }
+        /** A logged-in customer, or staff with one of these permissions. */
+        static Rule customerOrAny(AppPermission first, AppPermission... more) { return new Rule(false, true, null, EnumSet.of(first, more)); }
+
+        /** Staff may also use this customer URL (customerOrAny). */
+        public boolean staffToo() { return customer && (permissions != null || roles != null); }
         static Rule roles(Set<String> roles) { return new Rule(false, false, roles, null); }
         static Rule any(AppPermission first, AppPermission... more) { return new Rule(false, false, null, EnumSet.of(first, more)); }
 
         /** has(role, permission) answers from the Module Access settings. */
         public boolean allows(String role, BiPredicate<String, AppPermission> has) {
-            if (customer) {
+            if (customer && !staffToo()) {
                 return false; // customer URLs are not for staff logins
             }
             if (open || Roles.SUPER_ADMIN.equals(role)) {
@@ -69,12 +74,15 @@ public class AccessPolicy {
             return Rule.publicUrl();
         }
         // Public customer submissions
-        if (post && (path.equals("/api/bookings") || path.equals("/api/contact") || path.equals("/api/banquet")
-                || path.equals("/api/orders/online"))) {
+        if (post && (path.equals("/api/contact") || path.equals("/api/banquet"))) {
             return Rule.publicUrl();
         }
+        // Booking a room / ordering food online needs a customer login (front-desk staff can still book for a guest)
+        if (post && path.equals("/api/bookings")) return Rule.customerOrAny(BOOKING_STATUS);
+        if (post && path.equals("/api/orders/online")) return Rule.customerAccount();
         // Customer account on the website (separate from staff logins)
-        if (post && (path.equals("/api/customer/register") || path.equals("/api/customer/login"))) return Rule.publicUrl();
+        if (post && (path.equals("/api/customer/register") || path.equals("/api/customer/login")
+                || path.equals("/api/customer/otp/send") || path.equals("/api/customer/otp/verify"))) return Rule.publicUrl();
         if (under(path, "/api/customer")) return Rule.customerAccount();
         // Customer tracks a room booking with its secret code
         if (get && path.matches("/api/bookings/track/[A-Za-z0-9]+")) return Rule.publicUrl();
