@@ -155,6 +155,12 @@ public class FoodOrder {
     @Column(length = 30)
     private String offerCode;
 
+    /** Razorpay order (order_...) created for paying this order online, and its amount in paise. */
+    @Column(length = 60)
+    private String gatewayOrderId;
+
+    private Long gatewayAmountPaise;
+
     /** Discount % typed at the billing desk (no offer code), who gave it and why. */
     private Integer manualDiscountPercent;
 

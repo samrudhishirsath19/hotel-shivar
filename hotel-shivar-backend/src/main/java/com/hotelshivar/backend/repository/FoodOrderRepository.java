@@ -22,6 +22,8 @@ public interface FoodOrderRepository extends JpaRepository<FoodOrder, Long> {
 
     Optional<FoodOrder> findByTrackingCode(String trackingCode);
 
+    Optional<FoodOrder> findByGatewayOrderId(String gatewayOrderId);
+
     List<FoodOrder> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 
     @Query("""

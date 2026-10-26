@@ -89,6 +89,10 @@ public class AccessPolicy {
 
         // Customer pays for / tracks their online order with its secret tracking code
         if (post && path.matches("/api/orders/online/[A-Za-z0-9]+/pay")) return Rule.publicUrl();
+        if (post && path.matches("/api/orders/online/[A-Za-z0-9]+/razorpay/(order|verify|failed)")) return Rule.publicUrl();
+        // Payment settings for the website (public key only) and the Razorpay webhook (checked by its signature)
+        if (get && path.equals("/api/payments/config")) return Rule.publicUrl();
+        if (post && path.equals("/api/payments/razorpay/webhook")) return Rule.publicUrl();
         if (get && path.matches("/api/orders/track/[A-Za-z0-9]+")) return Rule.publicUrl();
 
         // ---- Module Access settings: everyone reads (the screens show only granted parts), super admin changes

@@ -6,3 +6,6 @@ target/
 HELP.md
 data/
 uploads/
+
+# Razorpay keys and other secrets (see secrets.properties.example)
+secrets.properties

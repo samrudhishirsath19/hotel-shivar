@@ -27,6 +27,7 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
+    private final com.hotelshivar.backend.service.RazorpayPaymentService razorpayPayments;
 
     /** Tables staff can take orders for (number, seats, status). */
     @GetMapping("/config")
@@ -58,6 +59,24 @@ public class OrderController {
     @PostMapping("/online/{code}/pay")
     public TrackResponse pay(@PathVariable String code, @Valid @RequestBody PayRequest request) {
         return orderService.pay(code, request);
+    }
+
+    /** Public (tracking code): open Razorpay Checkout for this order. */
+    @PostMapping("/online/{code}/razorpay/order")
+    public Map<String, Object> razorpayOrder(@PathVariable String code) {
+        return razorpayPayments.start(code);
+    }
+
+    /** Public (tracking code): Checkout finished - verify the payment with Razorpay. */
+    @PostMapping("/online/{code}/razorpay/verify")
+    public TrackResponse razorpayVerify(@PathVariable String code, @RequestBody Map<String, String> body) {
+        return razorpayPayments.verify(code, body.get("razorpay_order_id"), body.get("razorpay_payment_id"), body.get("razorpay_signature"));
+    }
+
+    /** Public (tracking code): Checkout reported a failed payment. */
+    @PostMapping("/online/{code}/razorpay/failed")
+    public TrackResponse razorpayFailed(@PathVariable String code, @RequestBody Map<String, String> body) {
+        return razorpayPayments.failed(code, body.get("payment_id"), body.get("reason"));
     }
 
     /** Public: order status and payment for the customer's tracking page. */

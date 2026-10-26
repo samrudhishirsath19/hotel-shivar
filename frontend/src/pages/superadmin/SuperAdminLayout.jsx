@@ -36,7 +36,7 @@ export default function SuperAdminLayout() {
     <PanelContext.Provider value={{ base, role }}>
     <div className="min-h-screen bg-gray-50 md:flex md:h-screen md:overflow-hidden">
       {/* phone: top bar with a menu button */}
-      <div className="md:hidden flex items-center justify-between bg-[#1F3B2D] text-white px-4 h-14">
+      <div className="md:hidden flex items-center justify-between bg-[#1E1E1E] text-white px-4 h-14">
         <span className="font-bold text-lg">Hotel Shivar</span>
         <button onClick={() => setOpen((o) => !o)} aria-label="Menu" className="text-2xl leading-none px-2">
           {open ? "✕" : "☰"}
@@ -44,7 +44,7 @@ export default function SuperAdminLayout() {
       </div>
 
       <aside
-        className={`${open ? "flex" : "hidden"} md:flex flex-col md:w-[267px] md:shrink-0 md:h-screen bg-[#1F3B2D] text-white px-4 py-4 md:overflow-hidden`}
+        className={`${open ? "flex" : "hidden"} md:flex flex-col md:w-[267px] md:shrink-0 md:h-screen bg-[#1E1E1E] text-white px-4 py-4 md:overflow-hidden`}
       >
         <div className="px-1">
           <h2 className="text-xl font-bold leading-tight">Hotel Shivar</h2>

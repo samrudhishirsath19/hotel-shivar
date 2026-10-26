@@ -7,6 +7,8 @@ import com.hotelshivar.backend.entity.enums.PaymentStatus;
 import com.hotelshivar.backend.exception.BadRequestException;
 import com.hotelshivar.backend.payment.DemoPaymentGateway;
 import com.hotelshivar.backend.payment.PaymentGateway;
+import com.hotelshivar.backend.payment.RazorpayClient;
+import com.hotelshivar.backend.dto.TrackResponse;
 import com.hotelshivar.backend.repository.PaymentTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,9 +28,48 @@ public class PaymentService {
 
     private final PaymentGateway gateway;
     private final PaymentTransactionRepository transactionRepository;
+    private final RazorpayClient razorpay;
 
     public List<PaymentTransaction> history(Long orderId) {
         return transactionRepository.findByOrderIdOrderByCreatedAtAsc(orderId);
+    }
+
+    public TrackResponse track(FoodOrder order) {
+        return new TrackResponse(order, history(order.getId()));
+    }
+
+    /** A payment reported by a real gateway (Razorpay): kept in the history; the order becomes PAID or FAILED. */
+    @Transactional
+    public void recordGatewayResult(FoodOrder order, boolean success, PaymentMethod method, String paymentId,
+                                    String ref, String payer, String message, String gatewayName) {
+        transactionRepository.save(PaymentTransaction.builder()
+                .orderId(order.getId())
+                .paymentId(paymentId)
+                .kind(PaymentTransaction.Kind.PAYMENT)
+                .method(method)
+                .result(success ? PaymentTransaction.Result.SUCCESS : PaymentTransaction.Result.FAILED)
+                .amount(order.getAmountPayable())
+                .gateway(gatewayName)
+                .transactionRef(ref)
+                .payerDetail(payer)
+                .message(message)
+                .build());
+        order.setPaymentMethod(method);
+        order.setPaymentId(paymentId);
+        order.setPaymentRef(ref);
+        order.setPaymentStatus(success ? PaymentStatus.PAID : PaymentStatus.FAILED);
+        order.setPaymentUpdatedAt(LocalDateTime.now());
+    }
+
+    /** Which gateway took the successful payment of this order (DEMO, RAZORPAY, COUNTER, COD), or null. */
+    private String paidThrough(FoodOrder order) {
+        String g = null;
+        for (PaymentTransaction t : history(order.getId())) {
+            if (t.getKind() == PaymentTransaction.Kind.PAYMENT && t.getResult() == PaymentTransaction.Result.SUCCESS) {
+                g = t.getGateway();
+            }
+        }
+        return g;
     }
 
     /** Online payment through the gateway. The order becomes PAID or FAILED. */
@@ -101,10 +142,18 @@ public class PaymentService {
             return;
         }
         boolean online = order.getPaymentMethod() != null && order.getPaymentMethod().isOnline();
-        PaymentGateway.Result r = online
-                ? gateway.refund(order.getPaymentId(), order.getAmountPayable())
-                : new PaymentGateway.Result(true, "rfnd_" + DemoPaymentGateway.random(14),
-                        "CASHREFUND-" + order.getId(), "Cash refunded at the counter");
+        String through = paidThrough(order);
+        PaymentGateway.Result r;
+        if ("RAZORPAY".equals(through)) {
+            // real money: refunded through Razorpay (reaches the customer in 5-7 working days)
+            var refund = razorpay.refund(order.getPaymentId(), RazorpayClient.toPaise(order.getAmountPayable()));
+            r = new PaymentGateway.Result(true, refund.path("id").asText(), refund.path("id").asText(), "Refunded through Razorpay");
+        } else {
+            r = online
+                    ? gateway.refund(order.getPaymentId(), order.getAmountPayable())
+                    : new PaymentGateway.Result(true, "rfnd_" + DemoPaymentGateway.random(14),
+                            "CASHREFUND-" + order.getId(), "Cash refunded at the counter");
+        }
         transactionRepository.save(PaymentTransaction.builder()
                 .orderId(order.getId())
                 .paymentId(r.paymentId())
@@ -112,7 +161,7 @@ public class PaymentService {
                 .method(order.getPaymentMethod() != null ? order.getPaymentMethod() : PaymentMethod.CASH)
                 .result(PaymentTransaction.Result.SUCCESS)
                 .amount(order.getAmountPayable())
-                .gateway(online ? gateway.name() : "COUNTER")
+                .gateway("RAZORPAY".equals(through) ? "RAZORPAY" : online ? gateway.name() : "COUNTER")
                 .transactionRef(r.transactionRef())
                 .message(reason != null ? reason : r.message())
                 .build());

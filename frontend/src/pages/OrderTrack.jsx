@@ -6,6 +6,7 @@ import { fmtDateTime } from "../dates";
 import { PAYMENT_STATUS, methodLabel, onlineStatusOf, onlineLabel } from "../orderStatus";
 import OrderStepper from "../components/OrderStepper";
 import { taxOf, payable, inr2, pct } from "../gst";
+import { paymentConfig, payWithRazorpay } from "../razorpay";
 import OfferApplied from "../components/OfferApplied";
 
 const PAY_OPTIONS = [
@@ -16,8 +17,72 @@ const PAY_OPTIONS = [
   { id: "CASH_ON_DELIVERY", label: "Cash on delivery", note: "Pay when the food arrives" },
 ];
 
-// Payment step: shown while a placed order is not paid yet (or the last attempt failed).
-function PaymentPanel({ data, code, onDone }) {
+// Payment step with Razorpay: pay online in Razorpay's secure window, or choose cash on delivery.
+function RazorpayPanel({ data, code, onDone }) {
+  const order = data.order;
+  const [cod, setCod] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [note, setNote] = useState("");
+
+  const pay = async () => {
+    setError("");
+    setNote("");
+    setBusy(true);
+    try {
+      if (cod) {
+        onDone(await apiFetch(`/api/orders/online/${code}/pay`, { method: "POST", body: JSON.stringify({ method: "CASH_ON_DELIVERY" }) }));
+      } else {
+        const res = await payWithRazorpay(code);
+        if (res.cancelled) setNote("Payment window closed. Your order is saved - pay whenever you are ready.");
+        else onDone(res);
+      }
+    } catch (e) {
+      setError(e.message);
+      apiFetch(`/api/orders/track/${encodeURIComponent(code)}`).then(onDone).catch(() => {}); // show the failed attempt
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="bg-white rounded-2xl border-2 border-[#B8893C] p-5">
+      <h2 className="font-serif text-xl text-[#1F3B2D]">Complete your payment</h2>
+      <p className="text-sm text-gray-600">The restaurant confirms your order after payment. Amount: <b>{inr2(payable(order))}</b>{order.taxAmount ? " (incl. GST)" : ""}</p>
+      {order.paymentStatus === "FAILED" && !error && (
+        <p className="mt-3 bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">The last payment failed. No money was taken - please try again.</p>
+      )}
+      {error && <p role="alert" className="mt-3 bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</p>}
+      {note && <p className="mt-3 bg-amber-50 border border-amber-200 text-amber-900 text-sm px-3 py-2 rounded-lg">{note}</p>}
+
+      <div className="mt-4 space-y-2" role="radiogroup" aria-label="Payment method">
+        <label className={`flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer ${!cod ? "border-[#1F3B2D] bg-[#F3F5F1]" : ""}`}>
+          <input type="radio" name="pay" checked={!cod} onChange={() => setCod(false)} />
+          <span className="flex-1">
+            <span className="block text-sm font-semibold">Pay online</span>
+            <span className="block text-xs text-gray-500">UPI (GPay, PhonePe, Paytm), cards, net banking, wallets</span>
+          </span>
+          <span className="text-[10px] font-bold text-[#0C2451] bg-[#E8F0FE] px-2 py-1 rounded">Razorpay</span>
+        </label>
+        <label className={`flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer ${cod ? "border-[#1F3B2D] bg-[#F3F5F1]" : ""}`}>
+          <input type="radio" name="pay" checked={cod} onChange={() => setCod(true)} />
+          <span className="flex-1">
+            <span className="block text-sm font-semibold">Cash on delivery</span>
+            <span className="block text-xs text-gray-500">Pay when the food arrives</span>
+          </span>
+        </label>
+      </div>
+
+      <button onClick={pay} disabled={busy} className="mt-4 w-full bg-[#1F3B2D] text-white font-semibold py-3.5 rounded-xl hover:bg-black disabled:opacity-60">
+        {busy ? "Please wait..." : cod ? "Confirm cash on delivery" : `Pay ${inr2(payable(order))}`}
+      </button>
+      <p className="mt-2 text-[11px] text-gray-400 text-center">🔒 Secure payment by Razorpay. Hotel Shivar never sees your card or bank details.</p>
+    </section>
+  );
+}
+
+// Demo payment step (used while no Razorpay keys are set): shown while a placed order is not paid yet.
+function DemoPaymentPanel({ data, code, onDone }) {
   const order = data.order;
   const [method, setMethod] = useState(order.paymentMethod && order.paymentMethod !== "CASH" ? order.paymentMethod : "UPI");
   const [upiId, setUpiId] = useState("");
@@ -97,6 +162,8 @@ function PaymentPanel({ data, code, onDone }) {
 export default function OrderTrack() {
   const { code } = useParams();
   const [data, setData] = useState(null);
+  const [gateway, setGateway] = useState(null); // { razorpay, keyId } from the server
+  useEffect(() => { paymentConfig().then(setGateway); }, []);
   const [error, setError] = useState("");
 
   const load = useCallback(() => {
@@ -155,7 +222,9 @@ export default function OrderTrack() {
 
         <OfferApplied x={o} />
 
-        {needsPayment && <PaymentPanel data={data} code={code} onDone={setData} />}
+        {needsPayment && gateway !== null && (gateway.razorpay
+          ? <RazorpayPanel data={data} code={code} onDone={setData} />
+          : <DemoPaymentPanel data={data} code={code} onDone={setData} />)}
 
         <section className="bg-white rounded-2xl border p-5">
           <h2 className="font-bold text-[#1F3B2D]">Delivery details</h2>

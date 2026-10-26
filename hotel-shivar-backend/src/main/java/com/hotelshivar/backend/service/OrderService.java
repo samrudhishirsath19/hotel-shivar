@@ -51,6 +51,7 @@ public class OrderService {
     private final PaymentService paymentService;
     private final GstService gstService;
     private final OfferService offerService;
+    private final com.hotelshivar.backend.payment.RazorpayClient razorpay;
 
     /** Tables staff can pick when taking an order (out-of-service tables are left out). */
     public List<RestaurantTable> orderableTables() {
@@ -315,6 +316,9 @@ public class OrderService {
         }
         if (o.getStatus() != OrderStatus.PENDING) {
             throw new BadRequestException("This order can no longer be paid online");
+        }
+        if (r.getMethod() != PaymentMethod.CASH_ON_DELIVERY && razorpay.enabled()) {
+            throw new BadRequestException("Please pay with Razorpay");
         }
         if (r.getMethod() == PaymentMethod.CASH_ON_DELIVERY) {
             o.setPaymentMethod(PaymentMethod.CASH_ON_DELIVERY);
