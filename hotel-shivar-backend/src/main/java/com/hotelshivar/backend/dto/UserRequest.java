@@ -27,4 +27,8 @@ public class UserRequest {
     private String role;
 
     private Boolean active;
+
+    /** Optional mobile number (needed for delivery boys). */
+    @Pattern(regexp = "^$|^[6-9][0-9]{9}$", message = "Enter a valid 10-digit mobile number")
+    private String phone;
 }

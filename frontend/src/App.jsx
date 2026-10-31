@@ -35,10 +35,14 @@ import OnlineOrdersPage from "./pages/superadmin/OnlineOrdersPage";
 import OrderTrack from "./pages/OrderTrack";
 import BookingTrack from "./pages/BookingTrack";
 import Account from "./pages/Account";
+import ResetPassword from "./pages/ResetPassword";
 import OffersPage from "./pages/superadmin/OffersPage";
 import EnquiriesPage from "./pages/superadmin/EnquiriesPage";
 import GstSettingsPage from "./pages/superadmin/GstSettingsPage";
 import ModuleAccessPage from "./pages/superadmin/ModuleAccessPage";
+import DeliveriesPage from "./pages/superadmin/DeliveriesPage";
+import DeliveryBoysPage from "./pages/superadmin/DeliveryBoysPage";
+import DispatchPage from "./pages/superadmin/DispatchPage";
 import SalesTab from "./pages/admin/SalesTab";
 import UsersTab from "./pages/admin/UsersTab";
 import RoomsTab from "./pages/admin/RoomsTab";
@@ -53,6 +57,12 @@ function GoHome() {
   return <Navigate to={homeFor(user.role)} replace />;
 }
 
+// Panel home: delivery boys go straight to their own deliveries, everyone else sees the dashboard.
+function PanelHome() {
+  const { user } = useAuth();
+  return user?.role === "DELIVERY_BOY" ? <Navigate to="deliveries" replace /> : <Overview />;
+}
+
 // A page of the panel; SectionGate decides which departments may open it (same rules as the sidebar).
 const gate = (id, page) => <SectionGate id={id}>{page}</SectionGate>;
 
@@ -60,7 +70,10 @@ const gate = (id, page) => <SectionGate id={id}>{page}</SectionGate>;
 // use /panel and only the pages that belong to their department.
 const panelPages = (
   <>
-    <Route index element={<Overview />} />
+    <Route index element={<PanelHome />} />
+    <Route path="deliveries" element={gate("deliveries", <DeliveriesPage />)} />
+    <Route path="delivery-boys" element={gate("delivery-boys", <DeliveryBoysPage />)} />
+    <Route path="dispatch" element={gate("dispatch", <DispatchPage />)} />
     <Route path="sales" element={gate("sales", <><PageTitle title="Sales report" sub="Day-wise sales of food items and rooms" /><SalesTab /></>)} />
     <Route path="kot" element={gate("kot", <KotPage />)} />
     <Route path="online" element={gate("online", <OnlineOrdersPage />)} />
@@ -138,6 +151,7 @@ export default function App() {
               <Route path="/booking/:code" element={<BookingTrack />} />
               {/* customer account: separate from the staff login */}
               <Route path="/account" element={<Account />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               {/* old address of the manager page */}
               <Route path="/manager" element={<ProtectedRoute><GoHome /></ProtectedRoute>} />
               <Route path="*" element={<div className="text-center pt-20">Page not found</div>} />

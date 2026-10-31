@@ -226,6 +226,19 @@ export default function OrderTrack() {
           ? <RazorpayPanel data={data} code={code} onDone={setData} />
           : <DemoPaymentPanel data={data} code={code} onDone={setData} />)}
 
+        {o.deliveryBoyName && !["CANCELLED"].includes(status) && (
+          <section className="bg-white rounded-2xl border-2 border-[#1F3B2D] p-4 flex items-center gap-3">
+            <span className="w-11 h-11 rounded-full bg-[#1F3B2D] text-white flex items-center justify-center text-xl">🛵</span>
+            <div className="flex-1">
+              <p className="text-xs text-gray-500">{status === "DELIVERED" ? "Delivered by" : status === "OUT_FOR_DELIVERY" ? "On the way with" : "Your delivery partner"}</p>
+              <p className="font-bold text-[#1F3B2D]">{o.deliveryBoyName}</p>
+            </div>
+            {o.deliveryBoyPhone && status === "OUT_FOR_DELIVERY" && (
+              <a href={`tel:${o.deliveryBoyPhone}`} className="px-4 py-2 rounded-full bg-green-600 text-white text-sm font-semibold">📞 Call</a>
+            )}
+          </section>
+        )}
+
         <section className="bg-white rounded-2xl border p-5">
           <h2 className="font-bold text-[#1F3B2D]">Delivery details</h2>
           <p className="text-sm mt-2">👤 {o.customerName} · 📞 {o.customerPhone}</p>

@@ -51,6 +51,7 @@ public enum AppPermission {
     // ---- Inventory
     INVENTORY_VIEW(AppModule.INVENTORY, "View stock", "Inventory page: stock in hand and low-stock items"),
     INVENTORY_MANAGE(AppModule.INVENTORY, "Manage stock", "Add / edit / delete inventory items"),
+    INVENTORY_OUT(AppModule.INVENTORY, "Inventory Out", "Record stock issued from the store (item, quantity, date, issued by)"),
 
     // ---- Purchase
     PURCHASE_VIEW(AppModule.PURCHASE, "View purchases", "Purchase page: purchase history"),
@@ -67,7 +68,24 @@ public enum AppPermission {
     GST_SETTINGS(AppModule.SETTINGS, "GST settings", "GST rates, GSTIN and invoice details"),
 
     // ---- Offers
-    OFFERS_MANAGE(AppModule.OFFERS, "Manage offers", "Add / edit offers: code, discount, valid dates, where they apply");
+    OFFERS_MANAGE(AppModule.OFFERS, "Manage offers", "Add / edit offers: code, discount, valid dates, where they apply"),
+
+    // ---- Delivery
+    DELIVERY_ASSIGN(AppModule.DELIVERY, "Assign delivery boy", "Give each online order to a delivery boy (or reassign it before pick-up)"),
+    DELIVERY_DISPATCH(AppModule.DELIVERY, "Delivery Dispatch", "Delivery Dispatch page: see Ready orders, choose the delivery boy and dispatch them"),
+    DELIVERY_STAFF(AppModule.DELIVERY, "Manage delivery boys", "Create / edit / switch off delivery boy logins");
+
+    /** What a new Order User starts with: online orders, delivery boys (the super admin can change it on Module Access). */
+    public static final Set<AppPermission> ORDER_USER_START = java.util.EnumSet.of(
+            ONLINE_VIEW, ORDER_CANCEL, DELIVERY_ASSIGN, DELIVERY_DISPATCH, DELIVERY_STAFF);
+
+    /**
+     * Kept only so rows saved earlier can still be read: these are now fixed duties of the Kitchen department
+     * (confirm online orders on the KOT, mark food Ready) and are not shown on Module Access.
+     */
+    public static final Set<AppPermission> RETIRED = java.util.EnumSet.of(KOT_READY, ONLINE_MANAGE);
+
+    public boolean retired() { return RETIRED.contains(this); }
 
     private final AppModule module;
     private final String label;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useCustomer } from "../context/CustomerContext";
 import { digits10, cleanName, isFullName, NAME_ERROR, NAME_MAX } from "../roles";
 
@@ -156,6 +157,9 @@ export default function CustomerLoginForm({ onDone }) {
           <button disabled={busy} className="w-full bg-[#1F3B2D] text-white font-semibold py-3.5 rounded-xl hover:bg-black disabled:opacity-50">
             {busy ? "Please wait..." : "Log in"}
           </button>
+          <Link to="/reset-password" onClick={() => onDone?.()} className="block text-center text-xs text-gray-500 underline">
+            Forgot password?
+          </Link>
           <button type="button" onClick={() => { setStep("phone"); setError(""); }} className="w-full text-xs text-[#B8893C] font-semibold">
             Log in with mobile OTP instead
           </button>

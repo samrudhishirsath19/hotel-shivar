@@ -1,7 +1,7 @@
 import { useState } from "react";
 import useBoard from "./useBoard";
 import { useAuth } from "../../context/AuthContext";
-import { canSee, can } from "../../roles";
+import { canSee, can, isKitchen } from "../../roles";
 import { usePanel } from "./panelContext";
 import { PageTitle } from "./ui";
 import TakeOrder from "./TakeOrder";
@@ -15,12 +15,12 @@ export default function KotPage() {
   const { user } = useAuth();
   const { base } = usePanel();
   const role = user?.role;
-  // each button follows its own permission (Module Access)
+  // confirming online orders and marking food Ready belong to the kitchen only; the rest follow Module Access
   const perms = {
-    ready: can(role, "KOT_READY"),
+    ready: isKitchen(role),
     sendToBilling: can(role, "SEND_TO_BILLING"),
     cancel: can(role, "ORDER_CANCEL"),
-    accept: can(role, "ONLINE_MANAGE"),
+    accept: isKitchen(role),
   };
   const takeOrders = can(role, "ORDER_TAKING");
 
@@ -30,7 +30,7 @@ export default function KotPage() {
         <PageTitle
           title="KOT"
           sub={perms.ready && !takeOrders
-            ? "New orders appear here automatically. Press Mark Ready when an order is made."
+            ? "Confirm new online orders, then press Mark Ready when each order is made. Only the kitchen can do these."
             : "Kitchen order tickets - refreshes every few seconds"}
         />
         {takeOrders && (

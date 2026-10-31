@@ -3,6 +3,7 @@ package com.hotelshivar.backend.controller;
 import com.hotelshivar.backend.dto.CustomerLoginRequest;
 import com.hotelshivar.backend.dto.CustomerRegisterRequest;
 import com.hotelshivar.backend.dto.OtpRequest;
+import com.hotelshivar.backend.dto.PasswordResetRequest;
 import com.hotelshivar.backend.entity.Booking;
 import com.hotelshivar.backend.entity.CustomerAccount;
 import com.hotelshivar.backend.entity.FoodOrder;
@@ -27,6 +28,7 @@ import java.util.Map;
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final com.hotelshivar.backend.service.PasswordResetService passwordResetService;
 
     /** Demo mode (no SMS provider yet): the OTP is also returned so it can be shown on screen. Turn off when live. */
     @org.springframework.beans.factory.annotation.Value("${app.otp.show-code:true}")
@@ -68,6 +70,39 @@ public class CustomerController {
     public SessionResponse login(@Valid @RequestBody CustomerLoginRequest request) {
         CustomerService.Session s = customerService.login(request);
         return new SessionResponse(s.token(), s.customer(), s.expiresAt());
+    }
+
+    // ------------------------------------------------------------------ forgot password (public)
+
+    /** Emails a 6-digit OTP and a reset link. Same answer whether or not the email has an account. */
+    @PostMapping("/password/forgot")
+    public Map<String, Object> forgotPassword(
+            @org.springframework.validation.annotation.Validated(PasswordResetRequest.Forgot.class) @RequestBody PasswordResetRequest request) {
+        passwordResetService.requestReset(request.getEmail());
+        return Map.of("sent", true, "message",
+                "If an account exists for this email, we have sent a 6-digit code and a reset link. Check your inbox (and spam).");
+    }
+
+    /** New password with the emailed OTP. */
+    @PostMapping("/password/reset")
+    public Map<String, Object> resetWithOtp(
+            @org.springframework.validation.annotation.Validated(PasswordResetRequest.WithOtp.class) @RequestBody PasswordResetRequest request) {
+        passwordResetService.resetWithOtp(request.getEmail(), request.getOtp(), request.getNewPassword());
+        return Map.of("reset", true, "message", "Password changed. You can now log in with your new password.");
+    }
+
+    /** New password with the token from the reset link. */
+    @PostMapping("/password/reset-link")
+    public Map<String, Object> resetWithLink(
+            @org.springframework.validation.annotation.Validated(PasswordResetRequest.WithLink.class) @RequestBody PasswordResetRequest request) {
+        passwordResetService.resetWithToken(request.getToken(), request.getNewPassword());
+        return Map.of("reset", true, "message", "Password changed. You can now log in with your new password.");
+    }
+
+    /** Reset page: is the link still valid? (token in the body, so it does not end up in server logs) */
+    @PostMapping("/password/reset-link/check")
+    public Map<String, Object> checkResetLink(@RequestBody PasswordResetRequest request) {
+        return Map.of("valid", passwordResetService.linkValid(request.getToken()));
     }
 
     @GetMapping("/me")

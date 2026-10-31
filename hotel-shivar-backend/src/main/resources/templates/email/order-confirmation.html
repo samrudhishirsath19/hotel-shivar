@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: layout('Order confirmation', ~{::#content})}" lang="en">
+<body>
+<div id="content">
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1F3B2D;">Your order is placed!</h1>
+    <p style="margin:0 0 18px;">Hi <span th:text="${o.customerName}">Guest</span>, thank you for ordering. Order <b>#<span th:text="${o.orderId}">1</span></b>:</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
+        <tr style="background:#f9fafb;">
+            <th align="left" style="padding:10px 14px;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Item</th>
+            <th align="center" style="padding:10px 8px;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Qty</th>
+            <th align="right" style="padding:10px 14px;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Amount</th>
+        </tr>
+        <tr th:each="l : ${o.lines}">
+            <td style="padding:9px 14px;border-bottom:1px solid #f1f1f1;">
+                <span th:text="${l.name}">Item</span><br>
+                <span style="font-size:12px;color:#9ca3af;" th:text="${fmt.money(l.unitPrice)} + ' each'">price</span>
+            </td>
+            <td align="center" style="padding:9px 8px;border-bottom:1px solid #f1f1f1;" th:text="${l.quantity}">1</td>
+            <td align="right" style="padding:9px 14px;border-bottom:1px solid #f1f1f1;" th:text="${fmt.money(l.amount)}">0</td>
+        </tr>
+        <tr><td colspan="2" style="padding:9px 14px;color:#6b7280;">Subtotal</td>
+            <td align="right" style="padding:9px 14px;" th:text="${fmt.money(o.subtotal)}">0</td></tr>
+        <tr th:if="${fmt.positive(o.discount)}"><td colspan="2" style="padding:9px 14px;color:#15803d;">Offer: <span th:text="${o.offerTitle}">offer</span></td>
+            <td align="right" style="padding:9px 14px;color:#15803d;">- <span th:text="${fmt.money(o.discount)}">0</span></td></tr>
+        <tr th:if="${fmt.positive(o.tax)}"><td colspan="2" style="padding:9px 14px;color:#6b7280;">GST</td>
+            <td align="right" style="padding:9px 14px;" th:text="${fmt.money(o.tax)}">0</td></tr>
+        <tr><td colspan="2" style="padding:12px 14px;font-weight:bold;background:#f4f1ea;">Total</td>
+            <td align="right" style="padding:12px 14px;font-weight:bold;font-size:17px;color:#1F3B2D;background:#f4f1ea;" th:text="${fmt.money(o.total)}">0</td></tr>
+    </table>
+
+    <p style="margin:18px 0 4px;font-size:14px;" th:if="${o.paymentMethod}">Payment: <b th:text="${o.paymentMethod}">UPI</b></p>
+    <p style="margin:0 0 18px;font-size:14px;" th:if="${o.deliveryAddress}">Delivering to: <span th:text="${o.deliveryAddress}">address</span></p>
+    <p style="margin:0 0 8px;" th:if="${o.trackingLink}">
+        <a th:href="${o.trackingLink}" href="#"
+           style="display:inline-block;background:#1F3B2D;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:8px;">Track my order</a>
+    </p>
+</div>
+</body>
+</html>

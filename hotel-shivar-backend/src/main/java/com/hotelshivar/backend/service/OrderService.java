@@ -52,6 +52,8 @@ public class OrderService {
     private final GstService gstService;
     private final OfferService offerService;
     private final com.hotelshivar.backend.payment.RazorpayClient razorpay;
+    private final DeliveryAssigner deliveryAssigner;
+    private final EmailNotifier emailNotifier;
 
     /** Tables staff can pick when taking an order (out-of-service tables are left out). */
     public List<RestaurantTable> orderableTables() {
@@ -181,6 +183,7 @@ public class OrderService {
         if (offer != null) {
             offerService.recordUse(offer.offer());
         }
+        emailNotifier.orderPlaced(saved);
         return saved;
     }
 
@@ -270,6 +273,20 @@ public class OrderService {
         if (to == OnlineOrderStatus.CANCELLED) {
             return cancel(id);
         }
+        if (to == OnlineOrderStatus.OUT_FOR_DELIVERY || to == OnlineOrderStatus.DELIVERED) {
+            throw new BadRequestException(o.getDeliveryBoyName() == null
+                    ? "Assign a delivery boy - only he can pick up and deliver the order"
+                    : "Only " + o.getDeliveryBoyName() + " (the assigned delivery boy) can pick up and deliver this order");
+        }
+        return moveOnline(o, to);
+    }
+
+    /**
+     * Moves an online order one delivery step on (checks the order of the steps). Used by the staff status link
+     * (up to Ready) and by the assigned delivery boy (Out for delivery, Delivered - see DeliveryService).
+     */
+    @Transactional
+    public FoodOrder moveOnline(FoodOrder o, OnlineOrderStatus to) {
         if (o.getStatus() != OrderStatus.ACCEPTED) {
             throw new BadRequestException("Confirm the order first");
         }
@@ -286,7 +303,12 @@ public class OrderService {
         }
         switch (to) {
             case PREPARING -> o.setKitchenStatus(KitchenStatus.PREPARING);
-            case READY -> o.setKitchenStatus(KitchenStatus.READY);
+            case READY -> {
+                o.setKitchenStatus(KitchenStatus.READY);
+                deliveryAssigner.autoAssign(o, null); // food is ready: give it to a delivery boy straight away
+                o.setOnlineStatus(OnlineOrderStatus.READY);
+                deliveryAssigner.startAcceptClock(o);
+            }
             case DELIVERED -> {
                 if (o.getPaymentStatus() != PaymentStatus.PAID) {
                     // cash on delivery (or an old order): the money is collected now
@@ -365,6 +387,8 @@ public class OrderService {
         o.setKitchenStatus(KitchenStatus.READY);
         if (o.getOrderType() == OrderType.ONLINE && o.getOnlineStatus() != null) {
             o.setOnlineStatus(OnlineOrderStatus.READY);
+            deliveryAssigner.autoAssign(o, null); // food is ready: give it to a delivery boy straight away
+            deliveryAssigner.startAcceptClock(o); // already sent to him earlier: his time to accept starts now
         }
         return orderRepository.save(o);
     }
@@ -486,12 +510,14 @@ public class OrderService {
     public FoodOrder cancel(Long id) {
         FoodOrder o = get(id);
         requireCancellable(o);
-        paymentService.refund(o, "Order cancelled - payment refunded");
+        var refund = paymentService.refund(o, "Order cancelled - payment refunded");
         o.setStatus(OrderStatus.CANCELLED);
         if (o.getOrderType() == OrderType.ONLINE && o.getOnlineStatus() != null) {
             o.setOnlineStatus(OnlineOrderStatus.CANCELLED);
         }
-        return orderRepository.save(o);
+        FoodOrder saved = orderRepository.save(o);
+        emailNotifier.orderCancelled(saved, refund);
+        return saved;
     }
 
     /**

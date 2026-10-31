@@ -3,7 +3,7 @@ import { apiFetch } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import { DEPARTMENTS, roleLabel } from "../../roles";
 
-const blank = { name: "", email: "", password: "", role: "MANAGER", active: true };
+const blank = { name: "", email: "", password: "", role: "MANAGER", active: true, phone: "" };
 const inputCls = "mt-1 w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#B8893C]";
 
 export default function UsersTab() {
@@ -35,6 +35,7 @@ export default function UsersTab() {
           email: form.email.trim(),
           password: form.password,
           role: form.role,
+          phone: form.phone || "",
           active: form.active,
         }),
       });
@@ -51,7 +52,7 @@ export default function UsersTab() {
 
   const edit = (u) => {
     setEditingId(u.id);
-    setForm({ name: u.name || "", email: u.email, password: "", role: u.role, active: u.active });
+    setForm({ name: u.name || "", email: u.email, password: "", role: u.role, active: u.active, phone: u.phone || "" });
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -103,6 +104,9 @@ export default function UsersTab() {
           </div>
           <div className="md:col-span-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-gray-500">{DEPARTMENTS.find((d) => d.value === form.role)?.help}</p>
+            <label className="text-sm font-medium mt-2 block">Mobile number {form.role === "DELIVERY_BOY" ? "(required)" : "(optional)"}</label>
+            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} inputMode="numeric"
+              placeholder="10 digits" className={inputCls} />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={form.active} onChange={set("active")} />
               Login enabled

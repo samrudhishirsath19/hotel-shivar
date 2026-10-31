@@ -37,7 +37,7 @@ public class ModuleAccessService {
 
     /** Departments whose access can be changed (not the super admin). */
     public static final List<String> ROLES =
-            List.of(Roles.MANAGER, Roles.RECEPTION, Roles.RESTAURANT, Roles.KITCHEN, Roles.BILLING);
+            List.of(Roles.MANAGER, Roles.RECEPTION, Roles.RESTAURANT, Roles.KITCHEN, Roles.BILLING, Roles.ORDER_USER);
 
     private final StaffPermissionRepository repository;
     private final ModuleAccessRepository moduleRepository;
@@ -76,8 +76,11 @@ public class ModuleAccessService {
 
     @Transactional
     public void set(String role, AppPermission permission, boolean enabled, AdminUser by) {
+        if (permission.retired()) {
+            throw new BadRequestException("This is a fixed Kitchen duty and cannot be switched here");
+        }
         if (!ROLES.contains(role)) {
-            throw new BadRequestException("Access can only be changed for: Manager, Reception, Captain, Kitchen, Billing");
+            throw new BadRequestException("Access can only be changed for: Manager, Reception, Captain, Kitchen, Billing, Order User");
         }
         grants(); // make sure every row exists first
         StaffPermission row = repository.findByRoleAndPermission(role, permission)
@@ -117,7 +120,8 @@ public class ModuleAccessService {
                     }
                     boolean hasModule = modules.getOrDefault(role + ":" + p.module(), p.module().defaultRoles().contains(role));
                     row = repository.save(StaffPermission.builder().role(role).permission(p)
-                            .enabled(p.startsOn(role, hasModule)).build());
+                            .enabled(Roles.ORDER_USER.equals(role) ? AppPermission.ORDER_USER_START.contains(p)
+                                    : p.startsOn(role, hasModule)).build());
                 }
                 row = applyPermissionDefaults(row);
                 if (Boolean.TRUE.equals(row.getEnabled())) {
@@ -135,6 +139,11 @@ public class ModuleAccessService {
      *   - Manager and Reception can see guest enquiries.
      */
     private StaffPermission applyPermissionDefaults(StaffPermission row) {
+        if (Roles.ORDER_USER.equals(row.getRole()) && row.getUpdatedAt() == null
+                && Boolean.TRUE.equals(row.getEnabled()) != AppPermission.ORDER_USER_START.contains(row.getPermission())) {
+            row.setEnabled(AppPermission.ORDER_USER_START.contains(row.getPermission()));
+            return repository.save(row);
+        }
         boolean enquiries = row.getPermission() == AppPermission.ENQUIRIES
                 && (Roles.MANAGER.equals(row.getRole()) || Roles.RECEPTION.equals(row.getRole()));
         if (enquiries && row.getUpdatedAt() == null && !Boolean.TRUE.equals(row.getEnabled())) {

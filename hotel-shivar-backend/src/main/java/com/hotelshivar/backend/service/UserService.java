@@ -39,6 +39,7 @@ public class UserService {
                 .role(r.getRole())
                 .passwordHash(passwordEncoder.encode(r.getPassword()))
                 .active(r.getActive() == null || r.getActive())
+                .phone(r.getPhone() == null || r.getPhone().isBlank() ? null : r.getPhone())
                 .build();
         return UserResponse.from(adminUserRepository.save(user));
     }
@@ -56,6 +57,7 @@ public class UserService {
         user.setName(r.getName().trim());
         user.setRole(r.getRole());
         user.setActive(active);
+        user.setPhone(r.getPhone() == null || r.getPhone().isBlank() ? null : r.getPhone());
         if (r.getPassword() != null && !r.getPassword().isBlank()) {
             checkPassword(r.getPassword(), false);
             user.setPasswordHash(passwordEncoder.encode(r.getPassword()));

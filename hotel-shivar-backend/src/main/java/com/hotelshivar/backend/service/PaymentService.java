@@ -29,6 +29,7 @@ public class PaymentService {
     private final PaymentGateway gateway;
     private final PaymentTransactionRepository transactionRepository;
     private final RazorpayClient razorpay;
+    private final EmailNotifier emailNotifier;
 
     public List<PaymentTransaction> history(Long orderId) {
         return transactionRepository.findByOrderIdOrderByCreatedAtAsc(orderId);
@@ -42,7 +43,7 @@ public class PaymentService {
     @Transactional
     public void recordGatewayResult(FoodOrder order, boolean success, PaymentMethod method, String paymentId,
                                     String ref, String payer, String message, String gatewayName) {
-        transactionRepository.save(PaymentTransaction.builder()
+        PaymentTransaction t = transactionRepository.save(PaymentTransaction.builder()
                 .orderId(order.getId())
                 .paymentId(paymentId)
                 .kind(PaymentTransaction.Kind.PAYMENT)
@@ -59,6 +60,9 @@ public class PaymentService {
         order.setPaymentRef(ref);
         order.setPaymentStatus(success ? PaymentStatus.PAID : PaymentStatus.FAILED);
         order.setPaymentUpdatedAt(LocalDateTime.now());
+        if (success) {
+            emailNotifier.paymentReceived(order, t);
+        }
     }
 
     /** Which gateway took the successful payment of this order (DEMO, RAZORPAY, COUNTER, COD), or null. */
@@ -87,7 +91,7 @@ public class PaymentService {
         }
         PaymentGateway.Result r = gateway.charge("order_" + order.getId(), order.getAmountPayable(), method, payer, forceFailure);
 
-        transactionRepository.save(PaymentTransaction.builder()
+        PaymentTransaction t = transactionRepository.save(PaymentTransaction.builder()
                 .orderId(order.getId())
                 .paymentId(r.paymentId())
                 .kind(PaymentTransaction.Kind.PAYMENT)
@@ -105,6 +109,9 @@ public class PaymentService {
         order.setPaymentRef(r.transactionRef());
         order.setPaymentStatus(r.success() ? PaymentStatus.PAID : PaymentStatus.FAILED);
         order.setPaymentUpdatedAt(LocalDateTime.now());
+        if (r.success()) {
+            emailNotifier.paymentReceived(order, t);
+        }
         return r;
     }
 
@@ -117,7 +124,7 @@ public class PaymentService {
         String ref = reference != null && !reference.isBlank()
                 ? reference.trim()
                 : "RCPT" + order.getId() + "-" + DemoPaymentGateway.random(6).toUpperCase();
-        transactionRepository.save(PaymentTransaction.builder()
+        PaymentTransaction t = transactionRepository.save(PaymentTransaction.builder()
                 .orderId(order.getId())
                 .paymentId(paymentId)
                 .kind(PaymentTransaction.Kind.PAYMENT)
@@ -133,13 +140,17 @@ public class PaymentService {
         order.setPaymentRef(ref);
         order.setPaymentStatus(PaymentStatus.PAID);
         order.setPaymentUpdatedAt(LocalDateTime.now());
+        emailNotifier.paymentReceived(order, t);
     }
 
-    /** Gives the money back for a paid order (a paid order that is cancelled). Does nothing if not paid. */
+    /**
+     * Gives the money back for a paid order (a paid order that is cancelled). Returns the refund,
+     * or null (and does nothing) when the order was not paid.
+     */
     @Transactional
-    public void refund(FoodOrder order, String reason) {
+    public PaymentTransaction refund(FoodOrder order, String reason) {
         if (order.getPaymentStatus() != PaymentStatus.PAID) {
-            return;
+            return null;
         }
         boolean online = order.getPaymentMethod() != null && order.getPaymentMethod().isOnline();
         String through = paidThrough(order);
@@ -154,7 +165,7 @@ public class PaymentService {
                     : new PaymentGateway.Result(true, "rfnd_" + DemoPaymentGateway.random(14),
                             "CASHREFUND-" + order.getId(), "Cash refunded at the counter");
         }
-        transactionRepository.save(PaymentTransaction.builder()
+        PaymentTransaction refund = transactionRepository.save(PaymentTransaction.builder()
                 .orderId(order.getId())
                 .paymentId(r.paymentId())
                 .kind(PaymentTransaction.Kind.REFUND)
@@ -168,6 +179,7 @@ public class PaymentService {
         order.setPaymentStatus(PaymentStatus.REFUNDED);
         order.setPaymentRef(r.transactionRef());
         order.setPaymentUpdatedAt(LocalDateTime.now());
+        return refund;
     }
 
     /** ra****@okaxis */

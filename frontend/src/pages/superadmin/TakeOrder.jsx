@@ -103,10 +103,9 @@ export default function TakeOrder({ onClose, onChanged = () => {}, allowOnline =
           items: cartItems.map((m) => ({ menuItemId: m.id, quantity: cart[m.id] })),
         }),
       });
-      // taken by our own staff, so it goes straight to the kitchen
-      await apiFetch(`/api/admin/orders/${order.id}/accept`, { method: "POST" });
+      // the kitchen confirms it on the KOT (only the kitchen confirms orders)
       setCart({}); setName(""); setPhone(""); setAddress("");
-      setMsg({ ok: true, text: `Online order #${order.id} sent to kitchen` });
+      setMsg({ ok: true, text: `Online order #${order.id} placed - waiting for the kitchen to confirm` });
       onChanged();
     } catch (e) {
       setMsg({ ok: false, text: e.message });

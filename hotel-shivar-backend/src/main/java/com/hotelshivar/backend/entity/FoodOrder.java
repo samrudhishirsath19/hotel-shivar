@@ -95,6 +95,38 @@ public class FoodOrder {
 
     private LocalDateTime deliveredAt;
 
+    /** Delivery boy the order is assigned to (name / phone copied so the history stays readable). */
+    private Long deliveryBoyId;
+
+    @Column(length = 100)
+    private String deliveryBoyName;
+
+    @Column(length = 10)
+    private String deliveryBoyPhone;
+
+    private LocalDateTime deliveryAssignedAt;
+
+    /** When the delivery boy accepted the order (null = waiting for him). */
+    private LocalDateTime deliveryAcceptedAt;
+
+    @Column(length = 100)
+    private String deliveryAssignedBy;
+
+    private LocalDateTime pickedUpAt;
+
+    /** Order User sent the ready order out with the assigned delivery boy (Delivery Dispatch). He can accept only after this. */
+    private LocalDateTime dispatchedAt;
+
+    @Column(length = 100)
+    private String dispatchedBy;
+
+    /** The delivery boy must accept before this time (2 minutes from when the order was sent to him and Ready). */
+    private LocalDateTime acceptBy;
+
+    /** Last delivery boy who let the time to accept run out (shown on Delivery Dispatch). */
+    @Column(length = 100)
+    private String acceptTimedOutBy;
+
     // ------------------------------------------------------------------ payment
 
     /** Null on orders saved before payments existed. */

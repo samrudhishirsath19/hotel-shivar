@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Ticket, AcceptActions, KitchenActions, CaptainActions, Toast,
+  Ticket, AcceptActions, KitchenActions, KitchenOnlyNote, CaptainActions, Toast,
   orderTitle, orderKind, isReady, isInBilling, isPreparing, READY_LABEL,
 } from "./Ticket";
 
 // The live KOT board, shared by the super admin, manager, captain and kitchen screens.
-//   perms = { ready, sendToBilling, cancel, accept } - what this user may do (Module Access permissions)
+//   perms = { ready, sendToBilling, cancel, accept } - what this user may do (ready / accept: Kitchen only)
 //   billingPath - where the "go to billing" link points (omit to hide it)
 export default function OrdersBoard({ boardState, perms = {}, billingPath, showBilled = true }) {
   const kitchen = !!perms.ready;
@@ -40,12 +40,14 @@ export default function OrdersBoard({ boardState, perms = {}, billingPath, showB
   const sub = (o) => (o.orderType === "ONLINE" ? `${o.customerName} · ${o.customerPhone}` : `KOT #${o.id}`);
   const card = (o) => {
     const kitchenBtn = kitchen && isPreparing(o);
+    const kitchenNote = !kitchen && isPreparing(o); // others see why there is no Mark Ready button
     const captainBtn = captain && !isInBilling(o) && (perms.cancel || isReady(o));
     return (
       <Ticket key={o.id} title={orderTitle(o)} sub={sub(o)} badge={orderKind(o)} order={o}>
-        {(kitchenBtn || captainBtn) && (
+        {(kitchenBtn || kitchenNote || captainBtn) && (
           <>
             {kitchenBtn && <KitchenActions order={o} run={run} />}
+            {kitchenNote && <KitchenOnlyNote order={o} />}
             {captainBtn && <CaptainActions order={o} run={run} sendToBilling={!!perms.sendToBilling} cancel={!!perms.cancel} />}
           </>
         )}

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: layout('Test email', ~{::#content})}" lang="en">
+<body>
+<div id="content">
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1F3B2D;">Email is working ✅</h1>
+    <p style="margin:0;">This test email was sent on <b th:text="${fmt.dateTime(sentAt)}">date</b>.
+        SMTP settings are correct - guests will now receive their booking, order, payment and password emails.</p>
+</div>
+</body>
+</html>

@@ -3,7 +3,7 @@ import { apiFetch } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 
 // Live order board (tables, room service, online orders). Refreshes every few seconds.
-export default function useBoard(intervalMs = 8000, enabled = true) {
+export default function useBoard(intervalMs = 5000, enabled = true) {
   const { logout } = useAuth();
   const [board, setBoard] = useState(null);
   const [error, setError] = useState("");

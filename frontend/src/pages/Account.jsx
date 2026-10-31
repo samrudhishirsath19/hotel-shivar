@@ -41,6 +41,7 @@ function OrderCard({ o }) {
           <p className="text-xs text-gray-500">{fmtDateTime(o.createdAt)} · {inr2(payable(o))}</p>
           {o.lines?.length > 0 && <p className="text-xs text-gray-600 mt-1 line-clamp-1">{o.lines.map((l) => `${l.quantity} × ${l.name}`).join(", ")}</p>}
           {o.discountAmount > 0 && <p className="text-xs text-green-700 font-semibold">🏷️ Offer applied: {o.offerTitle || o.offerCode} · saved {inr2(o.discountAmount)}</p>}
+          {o.deliveryBoyName && status !== "CANCELLED" && <p className="text-xs text-[#1F3B2D] font-semibold">🛵 Delivery partner: {o.deliveryBoyName}</p>}
         </div>
         <span className="text-[11px] px-2.5 py-1 rounded-full font-bold bg-[#1F3B2D] text-white whitespace-nowrap">{onlineLabel(status)}</span>
       </div>

@@ -30,6 +30,8 @@ public enum AppModule {
     SETTINGS("Settings", "GST settings: rates, GSTIN and invoice details",
             List.of()),
     OFFERS("Offers", "Offers and offer codes customers use when booking or ordering",
+            List.of()),
+    DELIVERY("Delivery", "Home delivery: assign online orders to delivery boys, delivery boy logins",
             List.of());
 
     private final String label;

@@ -36,6 +36,10 @@ public class AdminUser {
     @Column(nullable = false)
     private String role;
 
+    /** Mobile number (delivery boys: shown to the customer and the Order User). */
+    @Column(length = 10)
+    private String phone;
+
     @Builder.Default
     private Boolean active = true;
 

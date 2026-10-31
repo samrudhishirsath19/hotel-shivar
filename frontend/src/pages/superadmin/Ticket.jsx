@@ -139,9 +139,20 @@ export function KitchenActions({ order, run }) {
   const t = orderTitle(order);
   if (!isPreparing(order)) return null;
   return (
-    <button onClick={() => run(order.id, "ready", `✅ ${t} is ${readyLabel(order)}`)} className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-bold">
-      Mark Ready
+    <button onClick={() => run(order.id, "ready", `✅ ${t} is ${readyLabel(order)}`)}
+      className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold">
+      ✅ Mark Ready
     </button>
+  );
+}
+
+// Everyone except the kitchen: the order is cooking and only the kitchen can mark it ready.
+export function KitchenOnlyNote({ order }) {
+  if (!isPreparing(order)) return null;
+  return (
+    <span className="flex-1 py-2 text-center bg-orange-50 text-orange-700 rounded-lg text-xs font-semibold" title="Only Kitchen users can mark an order Ready">
+      🍳 Cooking - Mark Ready: Kitchen only
+    </span>
   );
 }
 

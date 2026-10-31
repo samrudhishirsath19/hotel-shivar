@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!--
+  Shared layout of every guest email: hotel name header, white card, footer.
+  A template uses it with:  th:replace="~{email/layout :: layout('Title', ~{::#content})}"
+  Inline styles and tables only - email apps (Gmail, Outlook) ignore <style> blocks and modern CSS.
+-->
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title}">Hotel Shivar</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f1ea;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1ea;padding:24px 12px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
+                <!-- header -->
+                <tr>
+                    <td style="background:#1F3B2D;border-radius:12px 12px 0 0;padding:22px 28px;text-align:center;">
+                        <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;letter-spacing:1px;color:#ffffff;" th:text="${hotelName}">Hotel Shivar</div>
+                        <div style="margin-top:4px;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#E2C58F;">Stay · Dine · Celebrate</div>
+                    </td>
+                </tr>
+                <tr><td style="height:4px;background:#B8893C;line-height:4px;font-size:0;">&nbsp;</td></tr>
+                <!-- content -->
+                <tr>
+                    <td style="background:#ffffff;padding:28px;font-size:15px;line-height:1.6;" th:insert="${content}">
+                        Email content
+                    </td>
+                </tr>
+                <!-- footer -->
+                <tr>
+                    <td style="background:#ffffff;border-top:1px solid #eee;border-radius:0 0 12px 12px;padding:16px 28px;font-size:12px;color:#6b7280;text-align:center;">
+                        <span th:text="${hotelName}">Hotel Shivar</span> ·
+                        <a th:href="${siteUrl}" th:text="${siteUrl}" style="color:#B8893C;">website</a><br>
+                        This is an automatic email - please do not reply to it.<br>
+                        &copy; <span th:text="${year}">2026</span> <span th:text="${hotelName}">Hotel Shivar</span>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

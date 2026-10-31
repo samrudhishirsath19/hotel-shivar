@@ -37,6 +37,7 @@ public class CustomerService {
     private final BookingRepository bookingRepository;
     private final FoodOrderRepository orderRepository;
     private final OtpService otpService;
+    private final EmailNotifier emailNotifier;
 
     public record Session(String token, CustomerAccount customer, long expiresAt) { }
 
@@ -56,6 +57,7 @@ public class CustomerService {
                 .passwordHash(passwordEncoder.encode(r.getPassword()))
                 .lastLoginAt(LocalDateTime.now())
                 .build());
+        emailNotifier.welcome(c); // sent after the account is saved
         return session(c);
     }
 
@@ -126,7 +128,11 @@ public class CustomerService {
             throw new UnauthorizedException("This account is blocked. Please call the hotel.");
         }
         c.setLastLoginAt(LocalDateTime.now());
-        return session(repository.save(c));
+        CustomerAccount saved = repository.save(c);
+        if (existing.isEmpty()) {
+            emailNotifier.welcome(saved); // new account made with the mobile OTP
+        }
+        return session(saved);
     }
 
     private Session session(CustomerAccount c) {

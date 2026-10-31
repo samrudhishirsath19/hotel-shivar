@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface AdminUserRepository extends JpaRepository<AdminUser, Long> {
     Optional<AdminUser> findByEmailIgnoreCase(String email);
+
+    java.util.List<AdminUser> findByRoleOrderByNameAsc(String role);
 }

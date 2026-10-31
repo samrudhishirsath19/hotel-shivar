@@ -122,10 +122,9 @@ export default function OrderDesk({ target, onChanged }) {
           items: cart.map((c) => ({ menuItemId: c.id, quantity: c.qty })),
         }),
       });
-      // taken by our own staff, so it goes straight to the kitchen
-      await apiFetch(`/api/admin/orders/${order.id}/accept`, { method: "POST" });
+      // the kitchen confirms it on the KOT (only the kitchen confirms orders)
       setCart([]); setCustName(""); setCustPhone(""); setCustAddress("");
-      flash(`✅ Online order #${order.id} sent to the kitchen`);
+      flash(`✅ Online order #${order.id} placed - waiting for the kitchen to confirm`);
       onChanged?.();
     } catch (e) {
       flash("⚠️ " + e.message);

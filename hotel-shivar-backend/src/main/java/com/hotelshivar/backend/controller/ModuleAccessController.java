@@ -48,7 +48,7 @@ public class ModuleAccessController {
     public Matrix get(@RequestAttribute(AuthInterceptor.USER_ATTRIBUTE) AdminUser me) {
         List<ModuleInfo> modules = Arrays.stream(AppModule.values())
                 .map(m -> new ModuleInfo(m, m.label(), m.description(), Arrays.stream(AppPermission.values())
-                        .filter(p -> p.module() == m)
+                        .filter(p -> p.module() == m && !p.retired())
                         .map(p -> new PermissionInfo(p, p.label(), p.description()))
                         .toList()))
                 .toList();

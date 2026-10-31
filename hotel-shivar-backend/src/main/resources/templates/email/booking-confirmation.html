@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: layout('Booking confirmation', ~{::#content})}" lang="en">
+<body>
+<div id="content">
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1F3B2D;">Thank you for your booking!</h1>
+    <p style="margin:0 0 18px;">Dear <span th:text="${b.guestName}">Guest</span>, we have received your room booking. Here are the details:</p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
+        <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #f1f1f1;">Booking ID</td>
+            <td style="padding:10px 14px;text-align:right;font-weight:bold;border-bottom:1px solid #f1f1f1;">#<span th:text="${b.bookingId}">1</span></td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #f1f1f1;">Room</td>
+            <td style="padding:10px 14px;text-align:right;border-bottom:1px solid #f1f1f1;"><span th:text="${b.roomName}">Room</span> (<span th:text="${b.roomType}">Deluxe</span>)</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #f1f1f1;">Check-in</td>
+            <td style="padding:10px 14px;text-align:right;border-bottom:1px solid #f1f1f1;" th:text="${fmt.date(b.checkIn)}">date</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #f1f1f1;">Check-out</td>
+            <td style="padding:10px 14px;text-align:right;border-bottom:1px solid #f1f1f1;" th:text="${fmt.date(b.checkOut)}">date</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #f1f1f1;">Nights</td>
+            <td style="padding:10px 14px;text-align:right;border-bottom:1px solid #f1f1f1;" th:text="${b.nights}">1</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #f1f1f1;">Guests</td>
+            <td style="padding:10px 14px;text-align:right;border-bottom:1px solid #f1f1f1;" th:text="${b.guests}">2</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #f1f1f1;">Room charges</td>
+            <td style="padding:10px 14px;text-align:right;border-bottom:1px solid #f1f1f1;" th:text="${fmt.money(b.roomCharges)}">0</td></tr>
+        <tr th:if="${fmt.positive(b.discount)}"><td style="padding:10px 14px;color:#15803d;border-bottom:1px solid #f1f1f1;">Offer: <span th:text="${b.offerTitle}">offer</span></td>
+            <td style="padding:10px 14px;text-align:right;color:#15803d;border-bottom:1px solid #f1f1f1;">- <span th:text="${fmt.money(b.discount)}">0</span></td></tr>
+        <tr th:if="${fmt.positive(b.tax)}"><td style="padding:10px 14px;color:#6b7280;border-bottom:1px solid #f1f1f1;">GST</td>
+            <td style="padding:10px 14px;text-align:right;border-bottom:1px solid #f1f1f1;" th:text="${fmt.money(b.tax)}">0</td></tr>
+        <tr><td style="padding:12px 14px;font-weight:bold;background:#f4f1ea;">Total amount</td>
+            <td style="padding:12px 14px;text-align:right;font-weight:bold;font-size:17px;color:#1F3B2D;background:#f4f1ea;" th:text="${fmt.money(b.total)}">0</td></tr>
+    </table>
+
+    <p style="margin:18px 0 6px;">Status: <b th:text="${b.status}">Pending</b> - the front desk will confirm your room shortly.</p>
+    <p style="margin:0 0 20px;" th:if="${b.trackingLink}">
+        <a th:href="${b.trackingLink}" href="#"
+           style="display:inline-block;background:#1F3B2D;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:8px;">View my booking</a>
+    </p>
+    <p style="margin:0;font-size:13px;color:#6b7280;">Check-in from 12:00 noon, check-out until 11:00 am. Please carry a photo ID for every guest.</p>
+</div>
+</body>
+</html>

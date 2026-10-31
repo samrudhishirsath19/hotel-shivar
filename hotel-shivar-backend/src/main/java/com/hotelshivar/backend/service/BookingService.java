@@ -21,6 +21,7 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final GstService gstService;
     private final OfferService offerService;
+    private final EmailNotifier emailNotifier;
 
     /** Public tracking page for a booking (secret code from the confirmation). */
     public Booking track(String code) {
@@ -103,6 +104,7 @@ public class BookingService {
         if (offer != null) {
             offerService.recordUse(offer.offer());
         }
+        emailNotifier.bookingPlaced(saved);
         return saved;
     }
 
@@ -141,8 +143,12 @@ public class BookingService {
 
     public Booking updateStatus(Long id, BookingStatus status) {
         Booking booking = getBookingById(id);
+        boolean cancelling = status == BookingStatus.CANCELLED && booking.getStatus() != BookingStatus.CANCELLED;
         booking.setStatus(status);
         bookingRepository.save(booking);
+        if (cancelling) {
+            emailNotifier.bookingCancelled(booking);
+        }
         // Read it again: save() hands back a copy whose room is a lazy proxy, and the JSON response
         // cannot load it after the database session is closed ("could not initialize proxy ... no Session").
         return getBookingById(id);
@@ -150,8 +156,12 @@ public class BookingService {
 
     public void cancelBooking(Long id) {
         Booking booking = getBookingById(id);
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            return; // already cancelled: no second email
+        }
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+        emailNotifier.bookingCancelled(booking);
     }
 
     /**

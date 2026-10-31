@@ -4,16 +4,23 @@ export const DEPARTMENTS = [
   { value: "MANAGER", label: "Manager", help: "Orders (same KOT as the captain), tables, online orders, room bookings, inventory / purchase / stock details" },
   { value: "RECEPTION", label: "Reception (Front desk)", help: "Room bookings only" },
   { value: "RESTAURANT", label: "Restaurant (Captain)", help: "Take orders, send them to the kitchen, send served orders to Billing" },
-  { value: "KITCHEN", label: "Kitchen", help: "New orders (KOT) - mark them ready" },
+  { value: "KITCHEN", label: "Kitchen", help: "KOT: the only department that confirms online orders and marks food Ready" },
   { value: "BILLING", label: "Billing", help: "Billing only: take payment for orders sent to Billing, print bills, see paid bills" },
+  { value: "ORDER_USER", label: "Order User", help: "Online orders: Delivery Dispatch (send Ready orders out with a delivery boy), track delivery, manage delivery boy logins" },
+  { value: "DELIVERY_BOY", label: "Delivery Boy", help: "Only the orders assigned to him: accept, pick up and deliver them" },
 ];
 
 export const roleLabel = (role) => DEPARTMENTS.find((d) => d.value === role)?.label || role;
 // short department names (table headers, switches)
 export const deptName = (role) =>
-  ({ MANAGER: "Manager", RECEPTION: "Reception", RESTAURANT: "Captain", KITCHEN: "Kitchen", BILLING: "Billing", SUPER_ADMIN: "Super Admin" }[role] || roleLabel(role));
+  ({ MANAGER: "Manager", RECEPTION: "Reception", RESTAURANT: "Captain", KITCHEN: "Kitchen", BILLING: "Billing", ORDER_USER: "Order User",
+    DELIVERY_BOY: "Delivery", SUPER_ADMIN: "Super Admin" }[role] || roleLabel(role));
 
 export const isSuper = (role) => role === "SUPER_ADMIN";
+
+// Fixed kitchen duties (not on Module Access, not even the super admin): confirm online orders on the KOT
+// and mark food Ready. The backend allows only the KITCHEN login for these (AccessPolicy KITCHEN_ONLY).
+export const isKitchen = (role) => role === "KITCHEN";
 
 // ---------------------------------------------------------------------------
 // Module Access: the super admin switches each permission (sub-module / action) on or off per department
@@ -25,19 +32,22 @@ export const setMyPerms = (list) => { myPerms = new Set(list || []); };
 export const can = (role, perm) => role === "SUPER_ADMIN" || myPerms.has(perm);
 
 // Dashboard panel: every department gets the same green-sidebar panel, with only the pages it may open.
-//   perm  - the permission that opens the page (the super admin has all)
+//   perm  - the permission that opens the page (or a list: any one of them; the super admin has all)
 //   roles - fixed list instead of a permission (pages that are not part of Module Access)
 const ALL_ROLES = DEPARTMENTS.map((d) => d.value);
 export const SECTIONS = [
-  { id: "dashboard", label: "Dashboard", roles: ALL_ROLES },
+  { id: "dashboard", label: "Dashboard", roles: ALL_ROLES.filter((r) => r !== "DELIVERY_BOY") },
+  { id: "deliveries", label: "My Deliveries", roles: ["DELIVERY_BOY"] },
   { id: "kot", label: "KOT",  perm: "KOT_VIEW" },
   { id: "online", label: "Online Orders", perm: "ONLINE_VIEW" },
+  { id: "dispatch", label: "Delivery Dispatch", perm: "DELIVERY_DISPATCH" },
+  { id: "delivery-boys", label: "Delivery Boys", perm: ["DELIVERY_STAFF", "DELIVERY_ASSIGN"] },
   { id: "menu", label: "Menu", perm: "ORDER_TAKING" },
   { id: "tables", label: "Tables", perm: "TABLE_VIEW" },
   { id: "reservation", label: "Reservation", perm: "BOOKING_VIEW" },
   { id: "rooms", label: "Rooms", perm: "ROOMS_SETUP" },
   { id: "billing", label: "Billing", perm: "BILLING_VIEW" },
-  { id: "inventory", label: "Inventory", perm: "INVENTORY_VIEW" },
+  { id: "inventory", label: "Inventory", perm: ["INVENTORY_VIEW", "INVENTORY_OUT"] },
   { id: "purchase", label: "Purchase", perm: "PURCHASE_VIEW" },
   { id: "staff", label: "Staff", perm: "STAFF_VIEW" },
   { id: "enquiries", label: "Enquiries", perm: "ENQUIRIES" },
@@ -51,13 +61,14 @@ export const canSee = (role, id) => {
   const s = SECTIONS.find((x) => x.id === id);
   if (!s || !role) return false;
   if (s.roles) return s.roles.includes(role);
-  return can(role, s.perm);
+  return [].concat(s.perm).some((p) => can(role, p));
 };
 
 // Super admin keeps /super-admin; every other department uses /panel
 export const panelBase = (role) => (role === "SUPER_ADMIN" ? "/super-admin" : "/panel");
 export const panelName = (role) =>
-  ({ SUPER_ADMIN: "Super Admin", MANAGER: "Manager", RECEPTION: "Reception", RESTAURANT: "Restaurant", KITCHEN: "Kitchen", BILLING: "Billing" }[role] || "Staff") + " Panel";
+  ({ SUPER_ADMIN: "Super Admin", MANAGER: "Manager", RECEPTION: "Reception", RESTAURANT: "Restaurant", KITCHEN: "Kitchen", BILLING: "Billing",
+    ORDER_USER: "Order User", DELIVERY_BOY: "Delivery" }[role] || "Staff") + " Panel";
 
 // Where each person lands after login
 export const homeFor = (role) => panelBase(role);

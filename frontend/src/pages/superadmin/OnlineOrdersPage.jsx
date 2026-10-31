@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../../api";
 import { useAuth } from "../../context/AuthContext";
-import { inr, can } from "../../roles";
+import { inr, can, isKitchen } from "../../roles";
 import { fmtDateTime, fmtTime, minutesSince } from "../../dates";
 import { NEXT_STEP, PAYMENT_STATUS, methodLabel, onlineStatusOf, onlineLabel, canConfirm } from "../../orderStatus";
 import { printBill } from "../../printBill";
@@ -9,12 +9,15 @@ import { taxOf, payable, inr2, pct } from "../../gst";
 import OrderStepper from "../../components/OrderStepper";
 import { PageTitle } from "./ui";
 import { Toast, PaymentBadge } from "./Ticket";
+import { deliveryStage } from "../../delivery";
+import AcceptCountdown from "../../components/AcceptCountdown";
 
 const FILTERS = [
   { id: "active", label: "Active", match: (s) => !["DELIVERED", "CANCELLED"].includes(s) },
   { id: "new", label: "New", match: (s) => s === "PLACED" },
   { id: "kitchen", label: "In kitchen", match: (s) => s === "CONFIRMED" || s === "PREPARING" },
   { id: "ready", label: "Ready", match: (s) => s === "READY" },
+  { id: "unassigned", label: "No delivery boy", match: (s, o) => ["CONFIRMED", "PREPARING", "READY"].includes(s) && !o.deliveryBoyId },
   { id: "out", label: "Out for delivery", match: (s) => s === "OUT_FOR_DELIVERY" },
   { id: "delivered", label: "Delivered", match: (s) => s === "DELIVERED" },
   { id: "cancelled", label: "Cancelled", match: (s) => s === "CANCELLED" },
@@ -53,10 +56,51 @@ function PaymentHistory({ orderId }) {
   );
 }
 
-function OrderCard({ o, canEdit, canCancelOrders, act }) {
+// Delivery boy of an order: who, where he is with it, and (Order User) assign / reassign until pick-up.
+function DeliveryBox({ o, boys, canAssign, assign }) {
+  const status = onlineStatusOf(o);
+  const stage = deliveryStage(o);
+  const [pick, setPick] = useState("");
+  const canChange = canAssign && ["CONFIRMED", "PREPARING", "READY"].includes(status) && o.status === "ACCEPTED" && !o.deliveryAcceptedAt;
+  if (status === "PLACED") {
+    return <p className="mx-4 mt-3 rounded-xl border border-dashed px-3 py-2 text-xs text-gray-500">🛵 Delivery boy: assign after confirming the order</p>;
+  }
+  const choices = (boys || []).filter((b) => b.active && b.id !== o.deliveryBoyId);
+  return (
+    <div className={`mx-4 mt-3 rounded-xl border-2 px-3 py-2 text-sm ${o.deliveryBoyId ? "border-[#1F3B2D]/30 bg-[#F3F5F1]" : status === "CANCELLED" ? "border-gray-200" : "border-red-300 bg-red-50"}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-semibold text-gray-900">
+          🛵 {o.deliveryBoyName ? <>{o.deliveryBoyName}{o.deliveryBoyPhone && <a href={`tel:${o.deliveryBoyPhone}`} className="ml-1 text-xs font-normal underline">{o.deliveryBoyPhone}</a>}</> : "No delivery boy assigned"}
+        </p>
+        <span className={`text-[10px] px-2 py-1 rounded-full font-bold whitespace-nowrap ${stage.cls}`}>{stage.label}</span>
+      </div>
+      {o.acceptBy && !o.deliveryAcceptedAt && status === "READY" && <div className="mt-1"><AcceptCountdown until={o.acceptBy} compact who={o.deliveryBoyName?.split(" ")[0]} /></div>}
+      {!o.deliveryBoyId && o.acceptTimedOutBy && status === "READY" && <p className="text-[11px] font-semibold text-red-700">⏱ {o.acceptTimedOutBy} did not accept in 2 minutes</p>}
+      {o.deliveryAssignedBy && <p className="text-[11px] text-gray-500">{o.deliveryAssignedBy === "Auto-assigned" ? "Assigned automatically when the kitchen marked it Ready" : `Assigned by ${o.deliveryAssignedBy}`}</p>}
+      {!o.deliveryBoyId && status !== "CANCELLED" && <p className="text-[11px] text-gray-500">{status === "READY" ? "No delivery boy was free / on duty - assign one by hand." : "A delivery boy is assigned automatically when the kitchen marks it Ready."}</p>}
+      {canChange && (
+        <div className="mt-2 flex gap-2">
+          <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label={`Delivery boy for order ${o.id}`}
+            className="flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-xs bg-white">
+            <option value="">{o.deliveryBoyId ? "Reassign to..." : "Choose delivery boy..."}</option>
+            {choices.map((b) => (
+              <option key={b.id} value={b.id}>{b.name} - {b.activeOrders === 0 ? "free" : `${b.activeOrders} order${b.activeOrders > 1 ? "s" : ""}`}</option>
+            ))}
+          </select>
+          <button disabled={!pick} onClick={() => { assign(o, Number(pick)); setPick(""); }}
+            className="px-3 py-1.5 rounded-lg bg-[#B8893C] text-white text-xs font-bold disabled:opacity-40">{o.deliveryBoyId ? "Reassign" : "Assign"}</button>
+        </div>
+      )}
+      {canChange && choices.length === 0 && !o.deliveryBoyId && <p className="mt-1 text-[11px] text-red-700">No delivery boy on duty - add one on the Delivery Boys page.</p>}
+    </div>
+  );
+}
+
+function OrderCard({ o, canEdit, canCancelOrders, act, boys, canAssign, assign }) {
   const [showPay, setShowPay] = useState(false);
   const status = onlineStatusOf(o);
-  const next = NEXT_STEP[status];
+  // pick-up and delivery are done by the assigned delivery boy himself (My Deliveries)
+  const next = ["READY", "OUT_FOR_DELIVERY"].includes(status) ? null : NEXT_STEP[status];
   const blocked = status === "PLACED" && !canConfirm(o);
   const canCancel = canCancelOrders && !["OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"].includes(status);
   const itemCount = o.lines.reduce((s, l) => s + l.quantity, 0);
@@ -83,6 +127,8 @@ function OrderCard({ o, canEdit, canCancelOrders, act }) {
         <p className="text-xs text-gray-600 mt-0.5">📍 {o.deliveryAddress || <span className="italic text-gray-400">No address (older order)</span>}</p>
         {o.deliveryNote && <p className="text-xs text-gray-500 mt-0.5">📝 {o.deliveryNote}</p>}
       </div>
+
+      <DeliveryBox o={o} boys={boys} canAssign={canAssign} assign={assign} />
 
       {/* items */}
       <div className="px-4 mt-3">
@@ -174,8 +220,11 @@ function OrderCard({ o, canEdit, canCancelOrders, act }) {
 // Online (delivery) orders, Swiggy / Zomato style: customer, address, items, payment and delivery progress.
 export default function OnlineOrdersPage() {
   const { user, logout } = useAuth();
-  const canEdit = can(user?.role, "ONLINE_MANAGE");    // confirm / next delivery step
+  const canEdit = isKitchen(user?.role);    // confirm / preparing / ready: kitchen only
   const canCancel = can(user?.role, "ORDER_CANCEL");
+  const canAssign = can(user?.role, "DELIVERY_ASSIGN"); // give orders to delivery boys
+  const [boys, setBoys] = useState(null);
+  const [boyFilter, setBoyFilter] = useState("");
   const [orders, setOrders] = useState(null);
   const [days, setDays] = useState(1);
   const [filter, setFilter] = useState("active");
@@ -186,16 +235,17 @@ export default function OnlineOrdersPage() {
   const load = useCallback(async () => {
     try {
       setOrders(await apiFetch(`/api/admin/online-orders?days=${days}`));
+      if (canAssign) setBoys(await apiFetch("/api/admin/delivery-boys"));
       setError("");
     } catch (e) {
       if (e.status === 401) logout();
       else setError(e.message);
     }
-  }, [days, logout]);
+  }, [days, logout, canAssign]);
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 8000);
+    const t = setInterval(() => { if (!document.hidden) load(); }, 5000); // live
     return () => clearInterval(t);
   }, [load]);
 
@@ -209,9 +259,20 @@ export default function OnlineOrdersPage() {
     }
   };
 
-  const list = orders || [];
-  const counts = Object.fromEntries(FILTERS.map((f) => [f.id, list.filter((o) => f.match(onlineStatusOf(o))).length]));
-  const shown = list.filter((o) => FILTERS.find((f) => f.id === filter).match(onlineStatusOf(o)));
+  const assign = async (o, boyId) => {
+    try {
+      const saved = await apiFetch(`/api/admin/online-orders/${o.id}/assign`, { method: "POST", body: JSON.stringify({ deliveryBoyId: boyId }) });
+      flash(`🛵 Order #${o.id} assigned to ${saved.deliveryBoyName}`);
+      load();
+    } catch (e) {
+      flash("⚠️ " + e.message);
+    }
+  };
+
+  const list = (orders || []).filter((o) => !boyFilter || String(o.deliveryBoyId) === boyFilter);
+  const counts = Object.fromEntries(FILTERS.map((f) => [f.id, list.filter((o) => f.match(onlineStatusOf(o), o)).length]));
+  const shown = list.filter((o) => FILTERS.find((f) => f.id === filter).match(onlineStatusOf(o), o));
+  const boyNames = [...new Map((orders || []).filter((o) => o.deliveryBoyId).map((o) => [String(o.deliveryBoyId), o.deliveryBoyName])).entries()];
   const todayPaid = list.filter((o) => o.paymentStatus === "PAID").reduce((s, o) => s + payable(o), 0);
 
   return (
@@ -220,10 +281,11 @@ export default function OnlineOrdersPage() {
       <PageTitle title="Online Orders" sub="Delivery orders: Placed → Confirmed → Preparing → Ready → Out for Delivery → Delivered" />
       {error && <p className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</p>}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
         {[
           ["New orders", counts.new, "text-yellow-700"],
           ["In kitchen / ready", counts.kitchen + counts.ready, "text-orange-600"],
+          ["No delivery boy yet", counts.unassigned, "text-red-600"],
           ["Out for delivery", counts.out, "text-blue-600"],
           ["Paid (shown period)", inr(todayPaid), "text-green-600"],
         ].map(([label, value, color]) => (
@@ -243,18 +305,26 @@ export default function OnlineOrdersPage() {
             </button>
           ))}
         </div>
+        <div className="flex gap-2">
+        <select value={boyFilter} onChange={(e) => setBoyFilter(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm bg-white" aria-label="Delivery boy">
+          <option value="">All delivery boys</option>
+          {boyNames.map(([id, name]) => <option key={id} value={id}>🛵 {name}</option>)}
+        </select>
         <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="border rounded-lg px-3 py-1.5 text-sm bg-white" aria-label="Period">
           <option value={0}>Today</option>
           <option value={1}>Today and yesterday</option>
           <option value={6}>Last 7 days</option>
           <option value={29}>Last 30 days</option>
         </select>
+        </div>
       </div>
 
-      {!canEdit && <p className="mb-3 text-xs text-gray-500">View only - the captain / manager moves orders to the next step. The kitchen marks them ready from KOT.</p>}
+      <p className="mb-3 text-xs text-gray-500">
+        Only the kitchen confirms orders and marks them Ready (KOT). Ready orders are dispatched to a delivery boy on the Delivery Dispatch page; when he accepts, the order goes Out for Delivery automatically and only he can deliver it.
+      </p>
       {orders && shown.length === 0 && <p className="text-sm text-gray-400 py-8 text-center">No orders here.</p>}
       <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
-        {shown.map((o) => <OrderCard key={o.id} o={o} canEdit={canEdit} canCancelOrders={canCancel} act={act} />)}
+        {shown.map((o) => <OrderCard key={o.id} o={o} canEdit={canEdit} canCancelOrders={canCancel} act={act} boys={boys} canAssign={canAssign} assign={assign} />)}
       </div>
       <p className="mt-6 text-xs text-gray-400">
         {Object.values(PAYMENT_STATUS).map((v) => v.label).join(" · ")} — an order can be confirmed only after it is paid, or when the customer chose cash on delivery. Cancelling a paid order refunds it.

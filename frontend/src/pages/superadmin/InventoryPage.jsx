@@ -3,12 +3,14 @@ import { can } from "../../roles";
 import { apiFetch } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import { PageTitle, Notice, Badge, inputCls } from "./ui";
+import InventoryOut from "./InventoryOut";
 
 const blank = { name: "", unit: "kg", quantity: "", minLevel: "" };
 const UNITS = ["kg", "g", "litre", "ml", "piece", "packet", "dozen", "box"];
 
 export default function InventoryPage() {
   const { user } = useAuth();
+  const [tab, setTab] = useState(can(user?.role, "INVENTORY_VIEW") || can(user?.role, "INVENTORY_MANAGE") ? "stock" : "out");
   const manage = can(user?.role, "INVENTORY_MANAGE"); // without it the page is view-only
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(blank);
@@ -71,7 +73,16 @@ export default function InventoryPage() {
 
   return (
     <div>
-      <PageTitle title="Inventory" sub="Stock in hand. Stock goes up automatically when you record a purchase." />
+      <PageTitle title="Inventory" sub="Stock goes up when you record a purchase and down when you record Inventory Out." />
+
+      <div className="mb-4 flex gap-2">
+        {[["stock", "📦 Stock in hand"], ["out", "📤 Inventory Out"]].map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={`px-4 py-2 rounded-full text-sm font-semibold border ${tab === id ? "bg-[#1F3B2D] text-white border-[#1F3B2D]" : "bg-white"}`}>{label}</button>
+        ))}
+      </div>
+
+      {tab === "out" ? <InventoryOut items={items} onChanged={load} /> : (<>
 
       {low.length > 0 && (
         <p className="mb-4 bg-orange-50 border border-orange-200 text-orange-800 text-sm px-4 py-3 rounded-lg">
@@ -136,6 +147,7 @@ export default function InventoryPage() {
           </tbody>
         </table>
       </div>
+      </>)}
     </div>
   );
 }
